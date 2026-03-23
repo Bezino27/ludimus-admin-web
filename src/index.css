@@ -1,0 +1,77 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  color: #111827;
+}
+
+a {
+  color: inherit;
+}
+
+.ProseMirror {
+  min-height: 260px;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #111827;
+}
+
+.ProseMirror p {
+  margin: 0 0 1em 0;
+}
+
+.ProseMirror h2,
+.preview-content h2 {
+  font-size: 1.75rem;
+  margin: 1em 0 0.5em;
+  line-height: 1.2;
+}
+
+.ProseMirror h3,
+.preview-content h3 {
+  font-size: 1.35rem;
+  margin: 1em 0 0.5em;
+  line-height: 1.25;
+}
+
+.ProseMirror blockquote,
+.preview-content blockquote {
+  border-left: 4px solid #d1d5db;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  color: #374151;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.ProseMirror ul,
+.ProseMirror ol,
+.preview-content ul,
+.preview-content ol {
+  padding-left: 1.4rem;
+  margin: 0 0 1em 0;
+}
+
+.ProseMirror img,
+.preview-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+  margin: 16px 0;
+}
+
+.preview-content p {
+  margin: 0 0 1em 0;
+}
+
+.preview-content hr,
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5em 0;
+}
