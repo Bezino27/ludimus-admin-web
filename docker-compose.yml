@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  admin_web:
+    build: .
+    container_name: ludimus_admin_web
+    restart: always
+    ports:
+      - "4173:80"
