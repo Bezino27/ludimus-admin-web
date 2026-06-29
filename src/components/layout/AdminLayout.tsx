@@ -27,6 +27,9 @@ export default function AdminLayout() {
           <Link to="/posts" style={{ color: "#fff", textDecoration: "none" }}>
             Články
           </Link>
+          <Link to="/polls" style={{ color: "#fff", textDecoration: "none" }}>
+            Ankety
+          </Link>
         </nav>
 
         <button
