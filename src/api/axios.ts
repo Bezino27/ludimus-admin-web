@@ -1,7 +1,9 @@
 import axios from "axios";
 
+import { API_BASE_URL } from "./config";
+
 const api = axios.create({
-  baseURL: "http://178.104.54.84:8000",
+  baseURL: API_BASE_URL,
 });
 
 let isRefreshing = false;
@@ -70,7 +72,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post("http://178.104.54.84:8000/api/admin/auth/refresh/", {
+        const response = await api.post("/api/admin/auth/refresh/", {
           refresh: refreshToken,
         });
 
