@@ -201,12 +201,10 @@ export default function DashboardPage() {
           <div className={styles.heroTop}>
             <div>
               <span className={styles.eyebrow}>Ludimus Web Admin</span>
-              <h1 className={styles.heroTitle}>
-                {activeClub?.club_name || "Klubový dashboard"}
-              </h1>
+              <h1 className={styles.heroTitle}>Dashboard</h1>
               <p className={styles.heroSubtitle}>
                 {activeClub
-                  ? `Spravuješ obsah webu klubu ${activeClub.club_name}. Dashboard je pripravený na články, analytiku a ďalšie webové moduly.`
+                  ? "Spravuješ obsah klubového webu. Dashboard je pripravený na články, analytiku a ďalšie webové moduly."
                   : "Zatiaľ nemáš priradený aktívny klub."}
               </p>
             </div>
@@ -219,13 +217,6 @@ export default function DashboardPage() {
           </div>
 
           <div className={styles.heroMeta}>
-            <div className={styles.heroMetaItem}>
-              <span className={styles.heroMetaLabel}>Slug klubu</span>
-              <strong className={styles.heroMetaValue}>
-                {activeClub?.club_slug || "—"}
-              </strong>
-            </div>
-
             <div className={styles.heroMetaItem}>
               <span className={styles.heroMetaLabel}>Články tento mesiac</span>
               <strong className={styles.heroMetaValue}>

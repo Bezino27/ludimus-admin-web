@@ -80,10 +80,7 @@ export default function PollDetailPage() {
   const totalVotes = getTotalVotes(poll);
 
   return (
-    <AdminPage
-      title="Detail ankety"
-      subtitle={poll.club_name ? `Klub ${poll.club_name}` : "Klubová anketa"}
-    >
+    <AdminPage title="Detail ankety" subtitle="Klubová anketa">
       <div className={styles.page}>
         <article className={styles.card}>
           <div className={styles.content}>

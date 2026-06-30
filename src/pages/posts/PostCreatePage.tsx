@@ -73,10 +73,7 @@ export default function PostCreatePage() {
   }
 
   return (
-    <AdminPage
-      title="Nový článok"
-      subtitle={`Vytvárate článok pre klub ${selectedClub.club_name}`}
-    >
+    <AdminPage title="Nový článok" subtitle="Vytvárate nový klubový článok.">
       <AdminCard>
         <PostForm
           onSubmit={handleSubmit}

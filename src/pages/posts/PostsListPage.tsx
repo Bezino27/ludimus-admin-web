@@ -179,11 +179,7 @@ export default function PostsListPage() {
       <div className={styles.topBar}>
         <div className={styles.headingWrap}>
           <h1 className={styles.title}>Články</h1>
-          <p className={styles.subtitle}>
-            {selectedClub
-              ? `Spravujete články pre klub ${selectedClub.club_name}`
-              : "Správa klubových článkov"}
-          </p>
+          <p className={styles.subtitle}>Správa klubových článkov</p>
         </div>
 
         <Link to="/posts/create" className={styles.primaryButton}>
@@ -315,9 +311,6 @@ export default function PostsListPage() {
                     </div>
 
                     <div className={styles.metaRow}>
-                      <span className={styles.metaItem}>
-                        Klub: {post.club_name}
-                      </span>
                       <span className={styles.metaItem}>
                         Kategória: {post.category_name || "Bez kategórie"}
                       </span>

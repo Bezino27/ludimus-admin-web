@@ -160,11 +160,7 @@ export default function PollsListPage() {
       <div className={styles.topBar}>
         <div className={styles.headingWrap}>
           <h1 className={styles.title}>Ankety</h1>
-          <p className={styles.subtitle}>
-            {selectedClub
-              ? `Spravujete ankety pre klub ${selectedClub.club_name}`
-              : "Správa klubových ankiet"}
-          </p>
+          <p className={styles.subtitle}>Správa klubových ankiet</p>
         </div>
 
         <Link to="/polls/create" className={styles.primaryButton}>
@@ -310,9 +306,6 @@ export default function PollsListPage() {
                     </div>
 
                     <div className={styles.metaRow}>
-                      <span className={styles.metaItem}>
-                        Klub: {poll.club_name || selectedClub?.club_name || "—"}
-                      </span>
                       <span className={styles.metaItem}>
                         Začiatok: {formatDate(poll.starts_at)}
                       </span>

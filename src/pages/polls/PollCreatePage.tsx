@@ -60,10 +60,7 @@ export default function PollCreatePage() {
   }
 
   return (
-    <AdminPage
-      title="Nová anketa"
-      subtitle={`Vytvárate anketu pre klub ${selectedClub.club_name}`}
-    >
+    <AdminPage title="Nová anketa" subtitle="Vytvárate novú klubovú anketu.">
       <AdminCard>
         <PollForm
           onSubmit={handleSubmit}
