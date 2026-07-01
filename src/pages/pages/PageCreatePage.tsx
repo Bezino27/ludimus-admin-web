@@ -28,6 +28,26 @@ const MENU_GROUP_OPTIONS = [
   ["footer", "Iba footer"],
 ];
 
+const SYSTEM_PAGE_SLUGS: Record<string, string> = {
+  home: "home",
+  about: "o-klube",
+  contact: "kontakt",
+  recruitment: "pridaj_sa",
+  articles: "clanky",
+};
+
+const SYSTEM_PAGE_PATHS: Record<string, string> = {
+  home: "/",
+  about: "/o-klube",
+  contact: "/kontakt",
+  recruitment: "/pridaj_sa",
+  articles: "/clanky",
+};
+
+function isSystemPageType(pageType: string) {
+  return pageType in SYSTEM_PAGE_SLUGS;
+}
+
 function slugifyText(text: string) {
   return text
     .toLowerCase()
@@ -83,7 +103,13 @@ export default function PageCreatePage() {
     [searchParams]
   );
 
+  const isSystemPage = isSystemPageType(values.page_type);
+
   const publicPathPreview = useMemo(() => {
+    if (SYSTEM_PAGE_PATHS[values.page_type]) {
+      return SYSTEM_PAGE_PATHS[values.page_type];
+    }
+
     if (values.page_type === "category") {
       return `/kategorie/${values.slug || "slug-stranky"}`;
     }
@@ -118,6 +144,20 @@ export default function PageCreatePage() {
     const { name, value, type } = target;
 
     setValues((prev) => {
+      if (name === "page_type") {
+        const nextPageType = value;
+        const nextSlug = isSystemPageType(nextPageType)
+          ? SYSTEM_PAGE_SLUGS[nextPageType]
+          : slugifyText(prev.title);
+
+        return {
+          ...prev,
+          page_type: nextPageType,
+          slug: nextSlug,
+          team_category: nextPageType === "category" ? prev.team_category : null,
+        };
+      }
+
       const next = {
         ...prev,
         [name]:
@@ -132,11 +172,7 @@ export default function PageCreatePage() {
               : value,
       };
 
-      if (name === "page_type" && value !== "category") {
-        next.team_category = null;
-      }
-
-      if (name === "title" && !slugTouched) {
+      if (name === "title" && !slugTouched && !isSystemPageType(prev.page_type)) {
         next.slug = slugifyText(value);
       }
 
@@ -145,6 +181,8 @@ export default function PageCreatePage() {
 
     if (name === "slug") {
       setSlugTouched(true);
+    } else if (name === "page_type") {
+      setSlugTouched(isSystemPageType(value));
     }
   };
 
@@ -248,17 +286,30 @@ export default function PageCreatePage() {
               />
             </div>
 
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Slug</label>
-              <input
-                className={styles.input}
-                name="slug"
-                value={values.slug}
-                onChange={handleChange}
-                placeholder="letny-tabor"
-              />
-              <span className={styles.mutedText}>URL: {publicPathPreview}</span>
-            </div>
+            {isSystemPage ? (
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Verejná URL</label>
+                <div className={styles.readOnlyValue}>{publicPathPreview}</div>
+                <p className={styles.hintText}>
+                  Táto stránka je systémová. Verejná URL sa nastavuje
+                  automaticky podľa typu stránky.
+                </p>
+              </div>
+            ) : (
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Slug</label>
+                <input
+                  className={styles.input}
+                  name="slug"
+                  value={values.slug}
+                  onChange={handleChange}
+                  placeholder="letny-tabor"
+                />
+                <span className={styles.mutedText}>
+                  Verejná URL: {publicPathPreview}
+                </span>
+              </div>
+            )}
 
             <div className={styles.fieldGroup}>
               <label className={styles.label}>Typ stránky</label>

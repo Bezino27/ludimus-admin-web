@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { getPublicPageUrl } from "../../api/config";
+import SectionEditorModal from "./SectionEditorModal";
 import {
   createPageSection,
   deletePage,
@@ -10,7 +11,6 @@ import {
   getPageSections,
   getTeamCategories,
   reorderPageSections,
-  updatePageSection,
   updatePage,
 } from "../../api/pages";
 import type {
@@ -18,9 +18,7 @@ import type {
   AdminPagePayload,
   AdminPageSection,
   AdminTeamCategory,
-  CreatePageSectionPayload,
   SectionOption,
-  UpdatePageSectionPayload,
 } from "../../types/page";
 import styles from "./PagesAdmin.module.css";
 
@@ -42,6 +40,18 @@ const MENU_GROUP_OPTIONS = [
   ["cta", "CTA tlačidlo"],
   ["footer", "Iba footer"],
 ];
+
+const SYSTEM_PAGE_PATHS: Record<string, string> = {
+  home: "/",
+  about: "/o-klube",
+  contact: "/kontakt",
+  recruitment: "/pridaj_sa",
+  articles: "/clanky",
+};
+
+function isSystemPageType(pageType: string) {
+  return pageType in SYSTEM_PAGE_PATHS;
+}
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
   hero: "Hero",
@@ -153,14 +163,6 @@ type SectionDragMeta = {
   }>;
 };
 
-type SectionFormValues = {
-  section_type: string;
-  pre_title: string;
-  title: string;
-  is_active: boolean;
-  hide_when_empty: boolean;
-};
-
 type SectionModalState =
   | {
       mode: "create";
@@ -192,18 +194,9 @@ export default function PageDetailPage() {
   const [sectionsError, setSectionsError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingPage, setDeletingPage] = useState(false);
-  const [sectionSaving, setSectionSaving] = useState(false);
   const [sectionDeletingId, setSectionDeletingId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [sectionModal, setSectionModal] = useState<SectionModalState | null>(null);
-  const [sectionFormValues, setSectionFormValues] =
-    useState<SectionFormValues>({
-      section_type: "",
-      pre_title: "",
-      title: "",
-      is_active: true,
-      hide_when_empty: false,
-    });
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [draggingSectionId, setDraggingSectionId] = useState<number | null>(null);
   const [dragOverSectionId, setDragOverSectionId] = useState<number | null>(null);
@@ -218,8 +211,15 @@ export default function PageDetailPage() {
     [page?.public_path]
   );
 
+  const isSystemPage = formValues ? isSystemPageType(formValues.page_type) : false;
+  const isCategoryPage = formValues?.page_type === "category";
+
   const publicPathPreview = useMemo(() => {
     if (!formValues) return page?.public_path || "/";
+
+    if (SYSTEM_PAGE_PATHS[formValues.page_type]) {
+      return page?.public_path || SYSTEM_PAGE_PATHS[formValues.page_type];
+    }
 
     if (formValues.page_type === "category") {
       return `/kategorie/${formValues.slug || "slug-stranky"}`;
@@ -441,89 +441,15 @@ export default function PageDetailPage() {
   const openCreateSectionModal = () => {
     setSectionsError("");
     setSectionModal({ mode: "create", section: null });
-    setSectionFormValues({
-      section_type: sectionOptions[0]?.value ?? "",
-      pre_title: "",
-      title: "",
-      is_active: true,
-      hide_when_empty: false,
-    });
   };
 
   const openEditSectionModal = (section: AdminPageSection) => {
     setSectionsError("");
     setSectionModal({ mode: "edit", section });
-    setSectionFormValues({
-      section_type: section.section_type,
-      pre_title: section.pre_title,
-      title: section.title,
-      is_active: section.is_active,
-      hide_when_empty: section.hide_when_empty,
-    });
   };
 
   const closeSectionModal = () => {
-    if (sectionSaving) return;
     setSectionModal(null);
-  };
-
-  const handleSectionFormChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const target = event.target as HTMLInputElement;
-    const { name, value, type } = target;
-
-    setSectionFormValues((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? target.checked : value,
-    }));
-  };
-
-  const handleSaveSection = async () => {
-    if (!id || !sectionModal) return;
-
-    try {
-      setSectionSaving(true);
-      setSectionsError("");
-      setSuccessMessage("");
-
-      if (sectionModal.mode === "create") {
-        const maxOrder = sections.reduce(
-          (max, section) => Math.max(max, section.order),
-          0
-        );
-        const payload: CreatePageSectionPayload = {
-          page: Number(id),
-          section_type: sectionFormValues.section_type,
-          pre_title: sectionFormValues.pre_title,
-          title: sectionFormValues.title,
-          order: maxOrder + 1,
-          is_active: sectionFormValues.is_active,
-          hide_when_empty: sectionFormValues.hide_when_empty,
-        };
-
-        await createPageSection(payload);
-        setSuccessMessage("Sekcia bola pridaná.");
-      } else {
-        const payload: UpdatePageSectionPayload = {
-          pre_title: sectionFormValues.pre_title,
-          title: sectionFormValues.title,
-          is_active: sectionFormValues.is_active,
-          hide_when_empty: sectionFormValues.hide_when_empty,
-        };
-
-        await updatePageSection(sectionModal.section.id, payload);
-        setSuccessMessage("Sekcia bola uložená.");
-      }
-
-      setSectionModal(null);
-      await loadSections();
-    } catch (err) {
-      console.error("Uloženie sekcie zlyhalo", err);
-      setSectionsError("Sekciu sa nepodarilo uložiť.");
-    } finally {
-      setSectionSaving(false);
-    }
   };
 
   const handleDeleteSection = async (section: AdminPageSection) => {
@@ -776,16 +702,35 @@ export default function PageDetailPage() {
                 />
               </div>
 
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>Slug</label>
-                <input
-                  className={styles.input}
-                  name="slug"
-                  value={formValues.slug}
-                  onChange={handleChange}
-                />
-                <span className={styles.mutedText}>URL: {publicPathPreview}</span>
-              </div>
+              {isSystemPage ? (
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label}>Verejná URL</label>
+                  <div className={styles.readOnlyValue}>{publicPathPreview}</div>
+                  <p className={styles.hintText}>
+                    Táto stránka je systémová. Verejná URL sa nastavuje
+                    automaticky podľa typu stránky.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label}>Slug</label>
+                  <input
+                    className={styles.input}
+                    name="slug"
+                    value={formValues.slug}
+                    onChange={handleChange}
+                  />
+                  <span className={styles.mutedText}>
+                    Verejná URL: {publicPathPreview}
+                  </span>
+                  {isCategoryPage ? (
+                    <p className={styles.hintText}>
+                      Slug tvorí URL stránky. Napojená kategória určuje, ktoré
+                      tímové dáta sa načítajú.
+                    </p>
+                  ) : null}
+                </div>
+              )}
 
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>Typ stránky</label>
@@ -794,6 +739,7 @@ export default function PageDetailPage() {
                   name="page_type"
                   value={formValues.page_type}
                   onChange={handleChange}
+                  disabled
                 >
                   {PAGE_TYPE_OPTIONS.map(([value, label]) => (
                     <option key={value} value={value}>
@@ -803,7 +749,7 @@ export default function PageDetailPage() {
                 </select>
               </div>
 
-              {formValues.page_type === "category" ? (
+              {isCategoryPage ? (
                 <div className={styles.fieldGroup}>
                   <label className={styles.label}>Napojená kategória</label>
                   <select
@@ -1122,119 +1068,29 @@ export default function PageDetailPage() {
       </div>
 
       {sectionModal ? (
-        <div className={styles.modalBackdrop} role="presentation">
-          <div
-            className={styles.sectionModal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="section-modal-title"
-          >
-            <div className={styles.modalHeader}>
-              <div>
-                <h2 id="section-modal-title" className={styles.modalTitle}>
-                  {sectionModal.mode === "create"
-                    ? "Pridať sekciu"
-                    : "Upraviť sekciu"}
-                </h2>
-                <p className={styles.modalText}>
-                  Nastav základné údaje sekcie. Obsah položiek doplníme v ďalšej
-                  etape.
-                </p>
-              </div>
-              <button
-                type="button"
-                className={styles.modalCloseButton}
-                onClick={closeSectionModal}
-                aria-label="Zavrieť"
-              >
-                ×
-              </button>
-            </div>
+        <SectionEditorModal
+          mode={sectionModal.mode}
+          pageId={Number(id)}
+          section={sectionModal.section}
+          sectionOptions={sectionOptions}
+          onClose={closeSectionModal}
+          onCreateSection={async (payload) => {
+            const maxOrder = sections.reduce(
+              (max, section) => Math.max(max, section.order),
+              0
+            );
 
-            <div className={styles.sectionForm}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>Typ sekcie</label>
-                <select
-                  className={styles.input}
-                  name="section_type"
-                  value={sectionFormValues.section_type}
-                  onChange={handleSectionFormChange}
-                  disabled={sectionModal.mode === "edit"}
-                >
-                  {sectionOptions.length === 0 ? (
-                    <option value="">Nie sú dostupné typy sekcií</option>
-                  ) : (
-                    sectionOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>Prednadpis</label>
-                <input
-                  className={styles.input}
-                  name="pre_title"
-                  value={sectionFormValues.pre_title}
-                  onChange={handleSectionFormChange}
-                />
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>Nadpis</label>
-                <input
-                  className={styles.input}
-                  name="title"
-                  value={sectionFormValues.title}
-                  onChange={handleSectionFormChange}
-                />
-              </div>
-
-              <div className={styles.checkboxGrid}>
-                <label className={styles.checkboxRow}>
-                  <input
-                    type="checkbox"
-                    name="is_active"
-                    checked={sectionFormValues.is_active}
-                    onChange={handleSectionFormChange}
-                  />
-                  Aktívna
-                </label>
-                <label className={styles.checkboxRow}>
-                  <input
-                    type="checkbox"
-                    name="hide_when_empty"
-                    checked={sectionFormValues.hide_when_empty}
-                    onChange={handleSectionFormChange}
-                  />
-                  Skryť, keď je prázdna
-                </label>
-              </div>
-            </div>
-
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={closeSectionModal}
-                disabled={sectionSaving}
-              >
-                Zrušiť
-              </button>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={handleSaveSection}
-                disabled={sectionSaving || !sectionFormValues.section_type}
-              >
-                {sectionSaving ? "Ukladám..." : "Uložiť sekciu"}
-              </button>
-            </div>
-          </div>
-        </div>
+            await createPageSection({
+              ...payload,
+              order: maxOrder + 1,
+            });
+          }}
+          onSaved={async (message) => {
+            setSectionModal(null);
+            await loadSections();
+            setSuccessMessage(message);
+          }}
+        />
       ) : null}
     </form>
   );

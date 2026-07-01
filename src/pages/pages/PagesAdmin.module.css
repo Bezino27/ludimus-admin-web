@@ -299,6 +299,18 @@
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.readOnlyValue {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 13px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 650;
+}
+
 .input:focus,
 .textarea:focus {
   border-color: #d32f2f;
@@ -672,5 +684,207 @@
   .modalActions {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+/* # SECTION EDITOR MODAL */
+.editorBlock {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.editorBlockTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.editorImagePreview {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.richToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: #f8fafc;
+}
+
+.richToolbar button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+
+.richToolbar button:hover {
+  background: #f3f4f6;
+}
+
+/* # SECTION RICH EDITOR */
+.richTextarea {
+  width: 100%;
+  min-height: 320px;
+  overflow: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 12px 12px;
+  padding: 14px;
+  background: #ffffff;
+  color: #111827;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  outline: none;
+}
+
+.richTextarea:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.richTextarea h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.richTextarea h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.richTextarea p {
+  margin: 0 0 12px;
+}
+
+.richTextarea blockquote {
+  margin: 12px 0;
+  padding-left: 14px;
+  border-left: 4px solid #d32f2f;
+  color: #4b5563;
+}
+
+.richTextarea img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.itemList {
+  display: grid;
+  gap: 12px;
+}
+
+.itemEditorRow {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.itemActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.newItemBox {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.newItemTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 850;
+}
+/* # SHARED RICH TEXT EDITOR */
+.richEditorWrapper {
+  display: grid;
+  gap: 0;
+}
+
+.richTextarea:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.richHtmlTextarea {
+  width: 100%;
+  min-height: 320px;
+  resize: vertical;
+  overflow: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 12px 12px;
+  padding: 14px;
+  background: #ffffff;
+  color: #111827;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  outline: none;
+}
+
+.richHtmlTextarea:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.richTextarea a {
+  color: #b91c1c;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.richTextarea ul,
+.richTextarea ol {
+  margin: 0 0 12px 22px;
+  padding: 0;
+}
+
+.richTextarea li {
+  margin: 4px 0;
+}
+
+.richTextarea hr {
+  height: 1px;
+  margin: 18px 0;
+  border: 0;
+  background: #e5e7eb;
+}
+
+@media (min-width: 900px) {
+  .sectionModal {
+    width: min(820px, 100%);
   }
 }

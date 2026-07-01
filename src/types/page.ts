@@ -63,6 +63,12 @@ export type AdminPageSection = {
   section_type: string;
   title: string;
   pre_title: string;
+  content: string;
+  image: string | null;
+  image_url: string | null;
+  url: string;
+  file: string | null;
+  file_url: string | null;
   order: number;
   is_active: boolean;
   hide_when_empty: boolean;
@@ -97,8 +103,79 @@ export type CreatePageSectionPayload = {
 };
 
 export type UpdatePageSectionPayload = {
+  section_type?: string;
   pre_title: string;
   title: string;
+  content?: string;
+  image?: File | null;
+  url?: string;
+  file?: File | null;
   is_active: boolean;
   hide_when_empty: boolean;
+};
+
+export type AdminPageSectionItem = {
+  id: number;
+  section: number;
+  section_type: string;
+  title: string;
+  url: string;
+  file: string | null;
+  file_url: string | null;
+  item_type: "document" | "link" | "item";
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreatePageSectionItemPayload = {
+  section: number;
+  title: string;
+  url?: string;
+  file?: File | null;
+  order: number;
+  is_active: boolean;
+};
+
+export type UpdatePageSectionItemPayload = {
+  title: string;
+  url?: string;
+  file?: File | null;
+  order: number;
+  is_active: boolean;
+};
+
+export type PageSectionItemReorderItem = {
+  id: number;
+  order: number;
+};
+
+export type AdminPageSectionContactItem = {
+  id: number;
+  section: number;
+  contact_type: string;
+  value: string;
+  url: string;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreatePageSectionContactItemPayload = {
+  section: number;
+  contact_type: string;
+  value: string;
+  url?: string;
+  order: number;
+  is_active: boolean;
+};
+
+export type UpdatePageSectionContactItemPayload = {
+  contact_type: string;
+  value: string;
+  url?: string;
+  order: number;
+  is_active: boolean;
 };

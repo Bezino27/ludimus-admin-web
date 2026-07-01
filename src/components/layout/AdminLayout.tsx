@@ -73,7 +73,7 @@ export default function AdminLayout() {
         <div>
           <div className={styles.brand}>
             <div className={styles.brandMark}>
-              <img src="/ludimus.png" alt="Ludimus logo" />
+              <img src="/image.png" alt="Ludimus logo" />
             </div>
             <div>
               <h2 className={styles.brandTitle}>Ludimus</h2>

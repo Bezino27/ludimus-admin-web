@@ -4,11 +4,18 @@ import type {
   AdminPage,
   AdminPagePayload,
   AdminPageSection,
+  AdminPageSectionContactItem,
+  AdminPageSectionItem,
   AdminTeamCategory,
   CreateAdminPagePayload,
+  CreatePageSectionContactItemPayload,
+  CreatePageSectionItemPayload,
   CreatePageSectionPayload,
+  PageSectionItemReorderItem,
   PageSectionReorderItem,
   SectionOptionsResponse,
+  UpdatePageSectionContactItemPayload,
+  UpdatePageSectionItemPayload,
   UpdatePageSectionPayload,
 } from "../types/page";
 
@@ -26,16 +33,69 @@ type PaginatedSectionsResponse = {
   results: AdminPageSection[];
 };
 
+type PaginatedSectionItemsResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AdminPageSectionItem[];
+};
+
+type PaginatedContactItemsResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AdminPageSectionContactItem[];
+};
+
 function normalizeList<T>(data: T[] | { results?: T[] }): T[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (data && Array.isArray(data.results)) {
-    return data.results;
-  }
-
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.results)) return data.results;
   return [];
+}
+
+function hasFile(value: unknown): value is File {
+  return typeof File !== "undefined" && value instanceof File;
+}
+
+function buildSectionFormData(payload: UpdatePageSectionPayload) {
+  const formData = new FormData();
+
+  if (payload.section_type) {
+    formData.append("section_type", payload.section_type);
+  }
+
+  formData.append("pre_title", payload.pre_title);
+  formData.append("title", payload.title);
+  formData.append("content", payload.content ?? "");
+  formData.append("url", payload.url ?? "");
+  formData.append("is_active", String(payload.is_active));
+  formData.append("hide_when_empty", String(payload.hide_when_empty));
+
+  if (hasFile(payload.image)) formData.append("image", payload.image);
+  if (hasFile(payload.file)) formData.append("file", payload.file);
+
+  return formData;
+}
+
+function buildSectionItemFormData(
+  payload: CreatePageSectionItemPayload | UpdatePageSectionItemPayload
+) {
+  const formData = new FormData();
+
+  if ("section" in payload) {
+    formData.append("section", String(payload.section));
+  }
+
+  formData.append("title", payload.title);
+  formData.append("url", payload.url ?? "");
+  formData.append("order", String(payload.order));
+  formData.append("is_active", String(payload.is_active));
+
+  if (hasFile(payload.file)) {
+    formData.append("file", payload.file);
+  }
+
+  return formData;
 }
 
 export const getPages = async (): Promise<AdminPage[]> => {
@@ -62,10 +122,7 @@ export const getTeamCategories = async (): Promise<AdminTeamCategory[]> => {
 export const createPage = async (
   payload: CreateAdminPagePayload
 ): Promise<AdminPage> => {
-  const response = await api.post<AdminPage>(
-    `${ADMIN_API_PREFIX}/pages/`,
-    payload
-  );
+  const response = await api.post<AdminPage>(`${ADMIN_API_PREFIX}/pages/`, payload);
   return response.data;
 };
 
@@ -87,9 +144,9 @@ export const deletePage = async (id: number | string) => {
 export const getPageSections = async (
   pageId: number | string
 ): Promise<AdminPageSection[]> => {
-  const response = await api.get<
-    AdminPageSection[] | PaginatedSectionsResponse
-  >(`${ADMIN_API_PREFIX}/pages/sections/?page=${pageId}`);
+  const response = await api.get<AdminPageSection[] | PaginatedSectionsResponse>(
+    `${ADMIN_API_PREFIX}/pages/sections/?page=${pageId}`
+  );
 
   return normalizeList(response.data).sort((a, b) => a.order - b.order);
 };
@@ -117,10 +174,29 @@ export const updatePageSection = async (
   id: number | string,
   payload: UpdatePageSectionPayload
 ): Promise<AdminPageSection> => {
+  const hasUpload = hasFile(payload.image) || hasFile(payload.file);
+
+  if (hasUpload) {
+    const response = await api.patch<AdminPageSection>(
+      `${ADMIN_API_PREFIX}/pages/sections/${id}/`,
+      buildSectionFormData(payload)
+    );
+    return response.data;
+  }
+
   const response = await api.patch<AdminPageSection>(
     `${ADMIN_API_PREFIX}/pages/sections/${id}/`,
-    payload
+    {
+      section_type: payload.section_type,
+      pre_title: payload.pre_title,
+      title: payload.title,
+      content: payload.content ?? "",
+      url: payload.url ?? "",
+      is_active: payload.is_active,
+      hide_when_empty: payload.hide_when_empty,
+    }
   );
+
   return response.data;
 };
 
@@ -131,9 +207,113 @@ export const deletePageSection = async (id: number | string) => {
 export const reorderPageSections = async (
   items: PageSectionReorderItem[]
 ): Promise<AdminPageSection[]> => {
-  const response = await api.patch<
-    AdminPageSection[] | PaginatedSectionsResponse
-  >(`${ADMIN_API_PREFIX}/pages/sections/reorder/`, { items });
+  const response = await api.patch<AdminPageSection[] | PaginatedSectionsResponse>(
+    `${ADMIN_API_PREFIX}/pages/sections/reorder/`,
+    { items }
+  );
 
   return normalizeList(response.data).sort((a, b) => a.order - b.order);
+};
+
+export const getPageSectionItems = async (
+  sectionId: number | string
+): Promise<AdminPageSectionItem[]> => {
+  const response = await api.get<AdminPageSectionItem[] | PaginatedSectionItemsResponse>(
+    `${ADMIN_API_PREFIX}/pages/section-items/?section=${sectionId}`
+  );
+
+  return normalizeList(response.data).sort((a, b) => a.order - b.order);
+};
+
+export const createPageSectionItem = async (
+  payload: CreatePageSectionItemPayload
+): Promise<AdminPageSectionItem> => {
+  if (hasFile(payload.file)) {
+    const response = await api.post<AdminPageSectionItem>(
+      `${ADMIN_API_PREFIX}/pages/section-items/`,
+      buildSectionItemFormData(payload)
+    );
+    return response.data;
+  }
+
+  const response = await api.post<AdminPageSectionItem>(
+    `${ADMIN_API_PREFIX}/pages/section-items/`,
+    payload
+  );
+  return response.data;
+};
+
+export const updatePageSectionItem = async (
+  id: number | string,
+  payload: UpdatePageSectionItemPayload
+): Promise<AdminPageSectionItem> => {
+  if (hasFile(payload.file)) {
+    const response = await api.patch<AdminPageSectionItem>(
+      `${ADMIN_API_PREFIX}/pages/section-items/${id}/`,
+      buildSectionItemFormData(payload)
+    );
+    return response.data;
+  }
+
+  const response = await api.patch<AdminPageSectionItem>(
+    `${ADMIN_API_PREFIX}/pages/section-items/${id}/`,
+    {
+      title: payload.title,
+      url: payload.url ?? "",
+      order: payload.order,
+      is_active: payload.is_active,
+    }
+  );
+
+  return response.data;
+};
+
+export const deletePageSectionItem = async (id: number | string) => {
+  await api.delete(`${ADMIN_API_PREFIX}/pages/section-items/${id}/`);
+};
+
+export const reorderPageSectionItems = async (
+  items: PageSectionItemReorderItem[]
+): Promise<AdminPageSectionItem[]> => {
+  const response = await api.patch<AdminPageSectionItem[] | PaginatedSectionItemsResponse>(
+    `${ADMIN_API_PREFIX}/pages/section-items/reorder/`,
+    { items }
+  );
+
+  return normalizeList(response.data).sort((a, b) => a.order - b.order);
+};
+
+export const getPageSectionContactItems = async (
+  sectionId: number | string
+): Promise<AdminPageSectionContactItem[]> => {
+  const response = await api.get<AdminPageSectionContactItem[] | PaginatedContactItemsResponse>(
+    `${ADMIN_API_PREFIX}/pages/section-contact-items/?section=${sectionId}`
+  );
+
+  return normalizeList(response.data).sort((a, b) => a.order - b.order);
+};
+
+export const createPageSectionContactItem = async (
+  payload: CreatePageSectionContactItemPayload
+): Promise<AdminPageSectionContactItem> => {
+  const response = await api.post<AdminPageSectionContactItem>(
+    `${ADMIN_API_PREFIX}/pages/section-contact-items/`,
+    payload
+  );
+  return response.data;
+};
+
+export const updatePageSectionContactItem = async (
+  id: number | string,
+  payload: UpdatePageSectionContactItemPayload
+): Promise<AdminPageSectionContactItem> => {
+  const response = await api.patch<AdminPageSectionContactItem>(
+    `${ADMIN_API_PREFIX}/pages/section-contact-items/${id}/`,
+    payload
+  );
+  return response.data;
+};
+
+export const deletePageSectionContactItem = async (id: number | string) => {
+  await api.delete(`${ADMIN_API_PREFIX}/pages/section-contact-items/${id}/`);
 };
