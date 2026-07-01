@@ -13,6 +13,7 @@ import PagesListPage from "./pages/pages/PagesListPage";
 import PostCreatePage from "./pages/posts/PostCreatePage";
 import PostEditPage from "./pages/posts/PostEditPage";
 import PostsListPage from "./pages/posts/PostsListPage";
+import ClubInfoPage from "./pages/club-info/ClubInfoPage";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="admin/pages/new" element={<PageCreatePage />} />
           <Route path="admin/pages/:id" element={<PageDetailPage />} />
           <Route path="polls" element={<PollsListPage />} />
+          <Route path="club-info" element={<ClubInfoPage />} />
           <Route path="polls/create" element={<PollCreatePage />} />
           <Route path="polls/:id" element={<PollDetailPage />} />
           <Route path="polls/:id/edit" element={<PollEditPage />} />

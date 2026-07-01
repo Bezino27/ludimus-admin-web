@@ -629,8 +629,9 @@ export default function PageDetailPage() {
   }
 
   return (
-    <form className={styles.page} onSubmit={handleSubmit}>
-      <div className={styles.detailHeader}>
+    <>
+      <form className={styles.page} onSubmit={handleSubmit}>
+        <div className={styles.detailHeader}>
         <div className={styles.headingWrap}>
           <h1 className={styles.title}>{page.title}</h1>
           <p className={styles.subtitle}>
@@ -1067,6 +1068,8 @@ export default function PageDetailPage() {
         </aside>
       </div>
 
+      </form>
+
       {sectionModal ? (
         <SectionEditorModal
           mode={sectionModal.mode}
@@ -1092,6 +1095,6 @@ export default function PageDetailPage() {
           }}
         />
       ) : null}
-    </form>
+    </>
   );
 }

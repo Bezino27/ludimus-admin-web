@@ -329,6 +329,15 @@ export default function SectionEditorModal({
     }
   };
 
+  const handleSectionSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    await handleSaveBasicSection();
+  };
+
   const handleCreateItem = async () => {
     if (!section) return;
 
@@ -479,7 +488,8 @@ export default function SectionEditorModal({
 
   return (
     <div className={styles.modalBackdrop} role="presentation">
-      <div
+      <form
+        onSubmit={handleSectionSubmit}
         className={styles.sectionModal}
         role="dialog"
         aria-modal="true"
@@ -912,15 +922,14 @@ export default function SectionEditorModal({
             Zrušiť
           </button>
           <button
-            type="button"
+            type="submit"
             className={styles.primaryButton}
-            onClick={handleSaveBasicSection}
             disabled={saving || !basicForm.section_type}
           >
             {saving ? "Ukladám..." : mode === "create" ? "Pridať sekciu" : "Uložiť sekciu"}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

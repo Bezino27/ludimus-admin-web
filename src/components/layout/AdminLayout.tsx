@@ -5,13 +5,14 @@ import styles from "./AdminLayout.module.css";
 type NavItem = {
   to: string;
   label: string;
-  icon: "dashboard" | "posts" | "pages" | "polls";
+  icon: "dashboard" | "posts" | "pages" | "polls" | "club-info";
 };
 
 const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: "dashboard" },
   { to: "/posts", label: "Články", icon: "posts" },
   { to: "/pages", label: "Stránky", icon: "pages" },
+  { to: "/club-info", label: "Klubové informácie", icon: "club-info" },
   { to: "/polls", label: "Ankety", icon: "polls" },
 ];
 
@@ -40,6 +41,14 @@ function NavIcon({ name }: { name: NavItem["icon"] }) {
     );
   }
 
+  if (name === "club-info") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 20V9.35L12 4l8 5.35V20h-5.25v-5.75h-5.5V20H4Zm2-2h1.25v-5.75h9.5V18H18V10.42l-6-4.02-6 4.02V18Zm3-8.25h6v1.8H9v-1.8Z" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H8.5l-3.02 2.27A.9.9 0 0 1 4 17.55V7.5A2.5 2.5 0 0 1 6.5 5H7Zm1.5 4.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" />
@@ -50,6 +59,7 @@ function NavIcon({ name }: { name: NavItem["icon"] }) {
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+
   const activeClub =
     user?.memberships?.find((membership) => membership.is_active) ??
     user?.memberships?.[0];
