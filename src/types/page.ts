@@ -47,12 +47,43 @@ export type CreateAdminPagePayload = AdminPagePayload & {
 
 export type AdminTeamCategory = {
   id: number;
-  name: string;
-  slug: string;
   club: number;
   club_name: string;
+  name: string;
+  slug: string;
   season: string;
+  birth_year_from: number;
+  birth_year_to: number;
+  display_years: string;
   category_subname: string;
+  league_name: string;
+  hero_image: string | null;
+  hero_image_url: string | null;
+  coach_name: string;
+  coach_email: string;
+  coach_phone: string;
+  order: number;
+  is_active: boolean;
+  szfb_watch_id: number | null;
+  szfb_watch_label: string | null;
+  szfb_competition_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminTeamCategoryPayload = {
+  club: number;
+  name: string;
+  slug: string;
+  season: string;
+  birth_year_from: number;
+  birth_year_to: number;
+  category_subname: string;
+  league_name: string;
+  hero_image?: File | null;
+  coach_name: string;
+  coach_email: string;
+  coach_phone: string;
   order: number;
   is_active: boolean;
 };
@@ -178,4 +209,20 @@ export type UpdatePageSectionContactItemPayload = {
   url?: string;
   order: number;
   is_active: boolean;
+};
+
+export type AdminClubSeason = {
+  id: number;
+  club: number;
+  club_name: string;
+  club_slug: string;
+  season: string;
+  available_seasons: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpdateAdminClubSeasonPayload = {
+  season: string;
+  recalculate_categories?: boolean;
 };

@@ -34,6 +34,7 @@ const CONTACT_TYPE_OPTIONS = [
 type SectionEditorModalProps = {
   mode: "create" | "edit";
   pageId: number;
+  pageType: string;
   section: AdminPageSection | null;
   sectionOptions: SectionOption[];
   onClose: () => void;
@@ -104,6 +105,10 @@ function isHeroType(sectionType: string) {
   return sectionType === "hero";
 }
 
+function isCategoryPageType(pageType: string) {
+  return pageType === "category" || pageType === "team_category";
+}
+
 function isItemsType(sectionType: string) {
   return sectionType === "custom_documents" || sectionType === "custom_links";
 }
@@ -131,6 +136,7 @@ function getContactTypeLabel(value: string) {
 export default function SectionEditorModal({
   mode,
   pageId,
+  pageType,
   section,
   sectionOptions,
   onClose,
@@ -173,6 +179,10 @@ export default function SectionEditorModal({
 
   const activeSectionType = basicForm.section_type;
   const isEditMode = mode === "edit" && Boolean(section);
+  const canEditHeroImage =
+    mode === "edit" &&
+    isHeroType(activeSectionType) &&
+    !isCategoryPageType(pageType);
 
   const selectedImagePreview = useMemo(() => {
     if (!basicForm.image) return null;
@@ -579,7 +589,7 @@ export default function SectionEditorModal({
             </label>
           </div>
 
-          {mode === "edit" && isHeroType(activeSectionType) ? (
+          {canEditHeroImage ? (
             <div className={styles.editorBlock}>
               <h3 className={styles.editorBlockTitle}>Hero obrázok</h3>
               {section?.image_url || selectedImagePreview ? (

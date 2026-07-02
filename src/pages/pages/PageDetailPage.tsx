@@ -1074,6 +1074,7 @@ export default function PageDetailPage() {
         <SectionEditorModal
           mode={sectionModal.mode}
           pageId={Number(id)}
+          pageType={formValues?.page_type ?? page.page_type}
           section={sectionModal.section}
           sectionOptions={sectionOptions}
           onClose={closeSectionModal}

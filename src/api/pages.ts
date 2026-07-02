@@ -1,12 +1,14 @@
 import api from "./axios";
 import { ADMIN_API_PREFIX } from "./config";
 import type {
+  AdminClubSeason,
   AdminPage,
   AdminPagePayload,
   AdminPageSection,
   AdminPageSectionContactItem,
   AdminPageSectionItem,
   AdminTeamCategory,
+  AdminTeamCategoryPayload,
   CreateAdminPagePayload,
   CreatePageSectionContactItemPayload,
   CreatePageSectionItemPayload,
@@ -14,6 +16,7 @@ import type {
   PageSectionItemReorderItem,
   PageSectionReorderItem,
   SectionOptionsResponse,
+  UpdateAdminClubSeasonPayload,
   UpdatePageSectionContactItemPayload,
   UpdatePageSectionItemPayload,
   UpdatePageSectionPayload,
@@ -98,6 +101,30 @@ function buildSectionItemFormData(
   return formData;
 }
 
+function buildCategoryFormData(payload: AdminTeamCategoryPayload) {
+  const formData = new FormData();
+
+  formData.append("club", String(payload.club));
+  formData.append("name", payload.name);
+  formData.append("slug", payload.slug);
+  formData.append("season", payload.season);
+  formData.append("birth_year_from", String(payload.birth_year_from));
+  formData.append("birth_year_to", String(payload.birth_year_to));
+  formData.append("category_subname", payload.category_subname);
+  formData.append("league_name", payload.league_name);
+  formData.append("coach_name", payload.coach_name);
+  formData.append("coach_email", payload.coach_email);
+  formData.append("coach_phone", payload.coach_phone);
+  formData.append("order", String(payload.order));
+  formData.append("is_active", String(payload.is_active));
+
+  if (hasFile(payload.hero_image)) {
+    formData.append("hero_image", payload.hero_image);
+  }
+
+  return formData;
+}
+
 export const getPages = async (): Promise<AdminPage[]> => {
   const response = await api.get<AdminPage[] | PaginatedPagesResponse>(
     `${ADMIN_API_PREFIX}/pages/`
@@ -112,17 +139,116 @@ export const getPage = async (id: number | string): Promise<AdminPage> => {
 };
 
 export const getTeamCategories = async (): Promise<AdminTeamCategory[]> => {
-  const response = await api.get<AdminTeamCategory[] | { results?: AdminTeamCategory[] }>(
-    `${ADMIN_API_PREFIX}/teams/categories/`
-  );
+  const response = await api.get<
+    AdminTeamCategory[] | { results?: AdminTeamCategory[] }
+  >(`${ADMIN_API_PREFIX}/teams/categories/`);
 
   return normalizeList(response.data);
+};
+
+export const getTeamCategoriesByClub = async (
+  clubSlug: string,
+  season?: string
+): Promise<AdminTeamCategory[]> => {
+  const params = new URLSearchParams();
+
+  params.set("club", clubSlug);
+
+  if (season) {
+    params.set("season", season);
+  }
+
+  const response = await api.get<
+    AdminTeamCategory[] | { results?: AdminTeamCategory[] }
+  >(`${ADMIN_API_PREFIX}/teams/categories/?${params.toString()}`);
+
+  return normalizeList(response.data);
+};
+
+export const createTeamCategory = async (
+  payload: AdminTeamCategoryPayload
+): Promise<AdminTeamCategory> => {
+  if (hasFile(payload.hero_image)) {
+    const response = await api.post<AdminTeamCategory>(
+      `${ADMIN_API_PREFIX}/teams/categories/`,
+      buildCategoryFormData(payload)
+    );
+
+    return response.data;
+  }
+
+  const response = await api.post<AdminTeamCategory>(
+    `${ADMIN_API_PREFIX}/teams/categories/`,
+    {
+      ...payload,
+      hero_image: undefined,
+    }
+  );
+
+  return response.data;
+};
+
+export const updateTeamCategory = async (
+  id: number | string,
+  payload: AdminTeamCategoryPayload
+): Promise<AdminTeamCategory> => {
+  if (hasFile(payload.hero_image)) {
+    const response = await api.patch<AdminTeamCategory>(
+      `${ADMIN_API_PREFIX}/teams/categories/${id}/`,
+      buildCategoryFormData(payload)
+    );
+
+    return response.data;
+  }
+
+  const response = await api.patch<AdminTeamCategory>(
+    `${ADMIN_API_PREFIX}/teams/categories/${id}/`,
+    {
+      ...payload,
+      hero_image: undefined,
+    }
+  );
+
+  return response.data;
+};
+
+export const deleteTeamCategory = async (id: number | string) => {
+  await api.delete(`${ADMIN_API_PREFIX}/teams/categories/${id}/`);
+};
+
+export const getCurrentClubSeason = async (
+  clubSlug: string
+): Promise<AdminClubSeason> => {
+  const response = await api.get<AdminClubSeason>(
+    `${ADMIN_API_PREFIX}/teams/club-seasons/current/?club=${encodeURIComponent(
+      clubSlug
+    )}`
+  );
+
+  return response.data;
+};
+
+export const updateCurrentClubSeason = async (
+  clubSlug: string,
+  payload: UpdateAdminClubSeasonPayload
+): Promise<AdminClubSeason> => {
+  const response = await api.patch<AdminClubSeason>(
+    `${ADMIN_API_PREFIX}/teams/club-seasons/current/?club=${encodeURIComponent(
+      clubSlug
+    )}`,
+    payload
+  );
+
+  return response.data;
 };
 
 export const createPage = async (
   payload: CreateAdminPagePayload
 ): Promise<AdminPage> => {
-  const response = await api.post<AdminPage>(`${ADMIN_API_PREFIX}/pages/`, payload);
+  const response = await api.post<AdminPage>(
+    `${ADMIN_API_PREFIX}/pages/`,
+    payload
+  );
   return response.data;
 };
 
@@ -218,9 +344,9 @@ export const reorderPageSections = async (
 export const getPageSectionItems = async (
   sectionId: number | string
 ): Promise<AdminPageSectionItem[]> => {
-  const response = await api.get<AdminPageSectionItem[] | PaginatedSectionItemsResponse>(
-    `${ADMIN_API_PREFIX}/pages/section-items/?section=${sectionId}`
-  );
+  const response = await api.get<
+    AdminPageSectionItem[] | PaginatedSectionItemsResponse
+  >(`${ADMIN_API_PREFIX}/pages/section-items/?section=${sectionId}`);
 
   return normalizeList(response.data).sort((a, b) => a.order - b.order);
 };
@@ -275,10 +401,9 @@ export const deletePageSectionItem = async (id: number | string) => {
 export const reorderPageSectionItems = async (
   items: PageSectionItemReorderItem[]
 ): Promise<AdminPageSectionItem[]> => {
-  const response = await api.patch<AdminPageSectionItem[] | PaginatedSectionItemsResponse>(
-    `${ADMIN_API_PREFIX}/pages/section-items/reorder/`,
-    { items }
-  );
+  const response = await api.patch<
+    AdminPageSectionItem[] | PaginatedSectionItemsResponse
+  >(`${ADMIN_API_PREFIX}/pages/section-items/reorder/`, { items });
 
   return normalizeList(response.data).sort((a, b) => a.order - b.order);
 };
@@ -286,9 +411,9 @@ export const reorderPageSectionItems = async (
 export const getPageSectionContactItems = async (
   sectionId: number | string
 ): Promise<AdminPageSectionContactItem[]> => {
-  const response = await api.get<AdminPageSectionContactItem[] | PaginatedContactItemsResponse>(
-    `${ADMIN_API_PREFIX}/pages/section-contact-items/?section=${sectionId}`
-  );
+  const response = await api.get<
+    AdminPageSectionContactItem[] | PaginatedContactItemsResponse
+  >(`${ADMIN_API_PREFIX}/pages/section-contact-items/?section=${sectionId}`);
 
   return normalizeList(response.data).sort((a, b) => a.order - b.order);
 };

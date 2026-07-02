@@ -14,7 +14,7 @@ import PostCreatePage from "./pages/posts/PostCreatePage";
 import PostEditPage from "./pages/posts/PostEditPage";
 import PostsListPage from "./pages/posts/PostsListPage";
 import ClubInfoPage from "./pages/club-info/ClubInfoPage";
-
+import CategoriesPage from "./pages/categories/CategoriesPage";
 export default function App() {
   return (
     <BrowserRouter>
@@ -43,6 +43,7 @@ export default function App() {
           <Route path="polls/create" element={<PollCreatePage />} />
           <Route path="polls/:id" element={<PollDetailPage />} />
           <Route path="polls/:id/edit" element={<PollEditPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
