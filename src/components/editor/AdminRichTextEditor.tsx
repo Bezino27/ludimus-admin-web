@@ -658,18 +658,18 @@ export default function AdminRichTextEditor({
             </ToolbarButton>
 
             <ToolbarButton
-              active={isPreviewMode}
-              onClick={() => setIsPreviewMode((current) => !current)}
-            >
-              Preview
-            </ToolbarButton>
-
-            <ToolbarButton
-              title={isExpanded ? "Zmenšiť" : "Zväčšiť"}
+              title={isExpanded ? "Zmenšiť editor" : "Zväčšiť editor"}
               active={isExpanded}
               onClick={() => setIsExpanded((current) => !current)}
             >
               <ExpandIcon expanded={isExpanded} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={isPreviewMode}
+              onClick={() => setIsPreviewMode((current) => !current)}
+            >
+              Preview
             </ToolbarButton>
           </div>
         </div>

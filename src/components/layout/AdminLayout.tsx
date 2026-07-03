@@ -17,7 +17,9 @@ type NavItem = {
     | "pages"
     | "polls"
     | "club-info"
-    | "categories";
+    | "categories"
+    | "players"
+    | "sports-data";
 };
 
 const navItems: NavItem[] = [
@@ -25,8 +27,10 @@ const navItems: NavItem[] = [
   { to: "/pages", label: "Stránky", icon: "pages" },
   { to: "/club-info", label: "Klubové informácie", icon: "club-info" },
   { to: "/categories", label: "Kategórie", icon: "categories" },
+  { to: "/players", label: "Hráči", icon: "players" },
   { to: "/posts", label: "Články", icon: "posts" },
   { to: "/polls", label: "Ankety", icon: "polls" },
+  { to: "/sports-data", label: "Športové dáta", icon: "sports-data" },
 ];
 
 function NavIcon({ name }: { name: NavItem["icon"] }) {
@@ -66,6 +70,23 @@ function NavIcon({ name }: { name: NavItem["icon"] }) {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h3A2.5 2.5 0 0 1 12 5.5v3A2.5 2.5 0 0 1 9.5 11h-3A2.5 2.5 0 0 1 4 8.5v-3Zm8 0A2.5 2.5 0 0 1 14.5 3h3A2.5 2.5 0 0 1 20 5.5v3a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 12 8.5v-3ZM4 15.5A2.5 2.5 0 0 1 6.5 13h3a2.5 2.5 0 0 1 2.5 2.5v3A2.5 2.5 0 0 1 9.5 21h-3A2.5 2.5 0 0 1 4 18.5v-3Zm8 0a2.5 2.5 0 0 1 2.5-2.5h3a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-3a2.5 2.5 0 0 1-2.5-2.5v-3Z" />
+      </svg>
+    );
+  }
+
+  if (name === "players") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7.25 7.5c0-3.17 3.36-5.75 7.25-5.75s7.25 2.58 7.25 5.75a.75.75 0 0 1-.75.75h-13a.75.75 0 0 1-.75-.75Zm14.5-6.95a3.6 3.6 0 0 1 2.5 3.43.75.75 0 0 1-.75.77h-1.15a7.48 7.48 0 0 0-2.2-3.26 7.9 7.9 0 0 0-1.2-.87 5.74 5.74 0 0 1 2.8-.07ZM17.2 11.5a3.25 3.25 0 1 0 0-6.5c-.37 0-.73.06-1.06.18a5.74 5.74 0 0 1 .13 6.14c.3.12.62.18.93.18Z" />
+      </svg>
+    );
+  }
+
+
+  if (name === "sports-data") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v15A2.5 2.5 0 0 1 16.5 22h-9A2.5 2.5 0 0 1 5 19.5v-15Zm3 2.25a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3.5a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm1 4.75a1 1 0 0 0-1 1v1.25a1 1 0 0 0 1 1h1.25a1 1 0 0 0 1-1V16a1 1 0 0 0-1-1H9Zm4.75 0a1 1 0 0 0-1 1v1.25a1 1 0 0 0 1 1H15a1 1 0 0 0 1-1V16a1 1 0 0 0-1-1h-1.25Z" />
       </svg>
     );
   }

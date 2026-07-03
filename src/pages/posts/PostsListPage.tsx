@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { deletePost, getPosts } from "../../api/posts";
 import { useAuth } from "../../context/useAuth";
@@ -67,6 +67,7 @@ export default function PostsListPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+  const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -95,12 +96,12 @@ export default function PostsListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, categoryFilter]);
+  }, [deferredSearch, statusFilter, categoryFilter]);
 
   const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
 
+    return posts.filter((post) => {
       const matchesSearch =
         !normalizedSearch ||
         post.title.toLowerCase().includes(normalizedSearch) ||
@@ -116,7 +117,7 @@ export default function PostsListPage() {
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
-  }, [posts, search, statusFilter, categoryFilter]);
+  }, [posts, deferredSearch, statusFilter, categoryFilter]);
 
   const categories = useMemo(() => {
     const map = new Map<string, string>();

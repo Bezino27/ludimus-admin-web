@@ -3,6 +3,11 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .topBar {
@@ -57,11 +62,15 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+  min-width: 0;
 }
 
 .statCard {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 92px;
   padding: 18px;
   border: 1px solid #e5e7eb;
@@ -93,11 +102,18 @@
   grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
   gap: 20px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* # CARDS */
 .card,
 .sideForm {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 22px;
@@ -105,8 +121,8 @@
 }
 
 .card {
-  min-width: 0;
   padding: 18px;
+  overflow: hidden;
 }
 
 .sideForm {
@@ -114,7 +130,7 @@
   top: 20px;
   display: grid;
   gap: 16px;
-  min-width: 0;
+  width: 100%;
   padding: 20px;
 }
 
@@ -146,15 +162,19 @@
 /* # TABLE */
 .tableWrap {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   background: #ffffff;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
 .table {
   width: 100%;
-  min-width: 980px;
+  min-width: 920px;
   border-collapse: collapse;
 }
 
@@ -198,20 +218,24 @@
 
 .table strong {
   display: block;
+  max-width: 100%;
   color: #111827;
   font-size: 14px;
   line-height: 1.35;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .table span,
 .table small,
 .mutedText {
   display: block;
+  max-width: 100%;
   margin-top: 4px;
   color: #6b7280;
   font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .table td:first-child {
@@ -294,6 +318,7 @@
 .field textarea {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   border: 1px solid #d1d5db;
   background: #ffffff;
   border-radius: 14px;
@@ -515,13 +540,34 @@
 }
 
 /* # RESPONSIVE */
-@media (max-width: 1200px) {
+@media (max-width: 1350px) {
   .twoColumn {
     grid-template-columns: 1fr;
   }
 
   .sideForm {
     position: static;
+    width: 100%;
+  }
+
+  .table {
+    min-width: 860px;
+  }
+
+  .table th,
+  .table td {
+    padding: 13px 12px;
+    font-size: 13px;
+  }
+
+  .table strong {
+    font-size: 13px;
+  }
+
+  .table span,
+  .table small,
+  .mutedText {
+    font-size: 12px;
   }
 }
 

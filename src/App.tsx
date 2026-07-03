@@ -15,6 +15,9 @@ import PostEditPage from "./pages/posts/PostEditPage";
 import PostsListPage from "./pages/posts/PostsListPage";
 import ClubInfoPage from "./pages/club-info/ClubInfoPage";
 import CategoriesPage from "./pages/categories/CategoriesPage";
+import SportsDataPage from "./pages/sports-data/SportsDataPage";
+import PlayersPage from "./pages/players/PlayersPage";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -30,20 +33,26 @@ export default function App() {
           }
         >
           <Route index element={<DashboardPage />} />
+
           <Route path="posts" element={<PostsListPage />} />
           <Route path="posts/create" element={<PostCreatePage />} />
           <Route path="posts/:id/edit" element={<PostEditPage />} />
+
           <Route path="pages" element={<PagesListPage />} />
           <Route path="pages/new" element={<PageCreatePage />} />
           <Route path="pages/:id" element={<PageDetailPage />} />
           <Route path="admin/pages/new" element={<PageCreatePage />} />
           <Route path="admin/pages/:id" element={<PageDetailPage />} />
+
           <Route path="polls" element={<PollsListPage />} />
-          <Route path="club-info" element={<ClubInfoPage />} />
           <Route path="polls/create" element={<PollCreatePage />} />
           <Route path="polls/:id" element={<PollDetailPage />} />
           <Route path="polls/:id/edit" element={<PollEditPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
+
+          <Route path="club-info" element={<ClubInfoPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="sports-data" element={<SportsDataPage />} />
+          <Route path="players" element={<PlayersPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

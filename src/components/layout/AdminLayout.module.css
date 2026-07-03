@@ -2,19 +2,47 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 232px minmax(0, 1fr);
-  background: #f3f4f6;
+  background:
+    linear-gradient(90deg, #101010 0 232px, #f3f4f6 232px 100%);
+  overflow-x: hidden;
 }
 
 .sidebar {
-  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 24px;
   padding: 18px 14px;
   background: #101010;
   color: #ffffff;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sidebarContent {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.sidebarContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebarContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebarContent::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* # BRAND */
@@ -300,6 +328,7 @@
 
 /* # LOGOUT */
 .logoutButton {
+  flex: 0 0 auto;
   width: 100%;
   min-height: 38px;
   padding: 0 10px;
@@ -325,6 +354,9 @@
 /* # MAIN */
 .main {
   min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
   padding: 24px;
   background: #f3f4f6;
 }

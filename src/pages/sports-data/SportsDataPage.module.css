@@ -1,0 +1,658 @@
+/* # PAGE */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 32px;
+  line-height: 1.05;
+  font-weight: 800;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.eyebrow,
+.cardEyebrow {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  max-width: 760px;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* # STATES */
+.messageBox,
+.stateBox,
+.errorBox,
+.emptyPanel {
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.messageBox {
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.stateBox {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.errorBox {
+  margin-top: 14px;
+  border: 1px solid #fecaca;
+  background: #fffafa;
+  color: #b91c1c;
+  overflow-wrap: anywhere;
+}
+
+.emptyPanel {
+  border: 1px dashed #d1d5db;
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+/* # GRID */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.card h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+/* # INFO */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.infoGrid div,
+.sourceBox {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #eef0f3;
+}
+
+.infoGrid span,
+.sourceBox span {
+  display: block;
+  margin-bottom: 5px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.infoGrid strong,
+.sourceBox strong {
+  display: block;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.sourceBox {
+  margin-top: 12px;
+}
+
+/* # TEAMS */
+.teamsList {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.teamMiniCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.teamMiniCard strong,
+.teamMiniCard span {
+  display: block;
+}
+
+.teamMiniCard strong {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.teamMiniCard span {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.teamMiniStats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.teamMiniStats span {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.teamMiniActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* # STATUS */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status_running {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.status_success {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.status_error {
+  background: #fffafa;
+  color: #b91c1c;
+}
+
+.status_idle {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* # ACTIONS */
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.primaryButton,
+.secondaryButton,
+.smallLinkButton,
+.select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    opacity 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.primaryButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.secondaryButton {
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.activeButton {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.smallLinkButton {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  font-size: 12px;
+}
+
+.select {
+  min-height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  outline: none;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.smallLinkButton:hover {
+  opacity: 0.86;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+/* # DETAIL PANELS */
+.detailPanel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.panelHeader,
+.panelSubheader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.panelHeader h3,
+.panelSubheader h4 {
+  margin: 0;
+  color: #111827;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+.panelHeader h3 {
+  font-size: 20px;
+}
+
+.panelSubheader h4 {
+  font-size: 16px;
+}
+
+.panelHeader span,
+.panelSubheader span,
+.panelSubheader p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.teamStatsBlock {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* # TABLES */
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableWrap::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
+  border-radius: 999px;
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef0f3;
+  text-align: left;
+  vertical-align: middle;
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.table th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table strong {
+  font-weight: 900;
+}
+
+/* # MODAL */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(17, 24, 39, 0.5);
+}
+
+.modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 22px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+.modalCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.modalCloseButton:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* # FORM */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field span {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 12px 13px;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.field textarea {
+  min-height: 112px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.field input[type="file"] {
+  padding: 10px;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.checkboxRow input {
+  width: 16px;
+  height: 16px;
+}
+
+.playerPreviewImage {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* # RESPONSIVE */
+@media (max-width: 1100px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teamMiniCard {
+    grid-template-columns: 1fr;
+  }
+
+  .teamMiniStats,
+  .teamMiniActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .header h1 {
+    font-size: 26px;
+  }
+
+  .headerActions,
+  .cardTop,
+  .cardActions,
+  .panelHeader,
+  .panelSubheader,
+  .modalHeader,
+  .modalActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .infoGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldFull {
+    grid-column: auto;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .select {
+    width: 100%;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .detailPanel {
+    padding: 12px;
+  }
+
+  .modalBackdrop {
+    padding: 14px;
+  }
+
+  .modal {
+    padding: 18px;
+  }
+}
