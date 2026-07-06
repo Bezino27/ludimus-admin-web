@@ -2,13 +2,16 @@ import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAdminSzfbWatchSettings,
+  getAdminSzfbAutoSyncConfig,
   getAdminSzfbCompetitions,
   getAdminSzfbCompetitionStandings,
   getAdminSzfbWatchMatches,
   getAdminSzfbWatchPlayers,
   startAdminSzfbCompetitionSync,
+  updateAdminSzfbAutoSyncConfig,
   updateAdminSzfbPlayerStat,
   updateAdminSzfbWatchSettings,
+  type AdminSzfbAutoSyncConfig,
   type AdminSzfbCompetition,
   type AdminSzfbMatch,
   type AdminSzfbPlayerStat,
@@ -54,6 +57,31 @@ type SettingsFormState = {
   isActive: boolean;
 };
 
+type PlayerStatsPageState = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  page: number;
+};
+
+type AutoSyncFormState = {
+  isEnabled: boolean;
+  weekday: string;
+  runTime: string;
+};
+
+const PLAYER_STATS_PAGE_SIZE = 10;
+
+const WEEKDAY_OPTIONS = [
+  { value: "0", label: "Pondelok" },
+  { value: "1", label: "Utorok" },
+  { value: "2", label: "Streda" },
+  { value: "3", label: "Štvrtok" },
+  { value: "4", label: "Piatok" },
+  { value: "5", label: "Sobota" },
+  { value: "6", label: "Nedeľa" },
+];
+
 const emptySettingsForm: SettingsFormState = {
   mode: "create",
   watchId: null,
@@ -79,6 +107,14 @@ function formatDateTime(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function getAutoSyncStatusLabel(status: AdminSzfbAutoSyncConfig["last_status"]) {
+  if (status === "success") return "Hotovo";
+  if (status === "error") return "Chyba";
+  if (status === "skipped") return "Preskočené";
+
+  return "Neaktívne";
 }
 
 function formatMatchDateTime(match: AdminSzfbMatch) {
@@ -128,6 +164,15 @@ function toOptionalNumber(value: string) {
 export default function SportsDataPage() {
   const { user } = useAuth();
   const [competitions, setCompetitions] = useState<AdminSzfbCompetition[]>([]);
+  const [autoSyncConfig, setAutoSyncConfig] =
+    useState<AdminSzfbAutoSyncConfig | null>(null);
+  const [autoSyncForm, setAutoSyncForm] = useState<AutoSyncFormState>({
+    isEnabled: false,
+    weekday: "0",
+    runTime: "06:00",
+  });
+  const [isAutoSyncLoading, setIsAutoSyncLoading] = useState(false);
+  const [isAutoSyncSaving, setIsAutoSyncSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("");
@@ -143,6 +188,9 @@ export default function SportsDataPage() {
   >({});
   const [playersByWatch, setPlayersByWatch] = useState<
     Record<number, AdminSzfbPlayerStat[]>
+  >({});
+  const [playerPagesByWatch, setPlayerPagesByWatch] = useState<
+    Record<number, PlayerStatsPageState>
   >({});
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>(
     {}
@@ -195,6 +243,34 @@ export default function SportsDataPage() {
     setCompetitions(data);
   }, [activeClubSlug]);
 
+  const applyAutoSyncConfig = (config: AdminSzfbAutoSyncConfig) => {
+    setAutoSyncConfig(config);
+    setAutoSyncForm({
+      isEnabled: config.is_enabled,
+      weekday: String(config.weekday),
+      runTime: config.run_time?.slice(0, 5) || "06:00",
+    });
+  };
+
+  const loadAutoSyncConfig = useCallback(async () => {
+    if (!activeClubSlug) {
+      setAutoSyncConfig(null);
+      return;
+    }
+
+    setIsAutoSyncLoading(true);
+
+    try {
+      const config = await getAdminSzfbAutoSyncConfig(activeClubSlug);
+      applyAutoSyncConfig(config);
+    } catch (error) {
+      console.error("Nepodarilo sa načítať SZFB automatiku:", error);
+      setActionMessage("Nastavenie automatickej synchronizácie sa nepodarilo načítať.");
+    } finally {
+      setIsAutoSyncLoading(false);
+    }
+  }, [activeClubSlug]);
+
   const setPanelLoading = (key: string, isLoadingPanel: boolean) => {
     setDetailLoading((current) => ({
       ...current,
@@ -226,6 +302,14 @@ export default function SportsDataPage() {
       });
 
       setPlayersByWatch((current) => {
+        const next = { ...current };
+        competition.watched_teams.forEach((team) => {
+          delete next[team.id];
+        });
+        return next;
+      });
+
+      setPlayerPagesByWatch((current) => {
         const next = { ...current };
         competition.watched_teams.forEach((team) => {
           delete next[team.id];
@@ -321,18 +405,33 @@ export default function SportsDataPage() {
       try {
         const entries = await Promise.all(
           missingTeams.map(async (team) => {
-            const players = await getAdminSzfbWatchPlayers(
+            const data = await getAdminSzfbWatchPlayers(
               team.id,
-              activeClubSlug
+              activeClubSlug,
+              1,
+              PLAYER_STATS_PAGE_SIZE
             );
-            return [team.id, players] as const;
+            return [team.id, data] as const;
           })
         );
 
         setPlayersByWatch((current) => {
           const next = { ...current };
-          entries.forEach(([teamId, players]) => {
-            next[teamId] = players;
+          entries.forEach(([teamId, data]) => {
+            next[teamId] = data.results;
+          });
+          return next;
+        });
+
+        setPlayerPagesByWatch((current) => {
+          const next = { ...current };
+          entries.forEach(([teamId, data]) => {
+            next[teamId] = {
+              count: data.count,
+              next: data.next,
+              previous: data.previous,
+              page: 1,
+            };
           });
           return next;
         });
@@ -345,6 +444,48 @@ export default function SportsDataPage() {
     },
     [activeClubSlug, playersByWatch]
   );
+
+  const loadMorePlayerStats = async (team: AdminSzfbTeamWatch) => {
+    const pageState = playerPagesByWatch[team.id];
+
+    if (!pageState?.next || detailLoading[`players:${team.id}:more`]) {
+      return;
+    }
+
+    const loadingKey = `players:${team.id}:more`;
+    setPanelLoading(loadingKey, true);
+    setPanelError(loadingKey, "");
+
+    try {
+      const nextPage = pageState.page + 1;
+      const data = await getAdminSzfbWatchPlayers(
+        team.id,
+        activeClubSlug,
+        nextPage,
+        PLAYER_STATS_PAGE_SIZE
+      );
+
+      setPlayersByWatch((current) => ({
+        ...current,
+        [team.id]: [...(current[team.id] || []), ...data.results],
+      }));
+
+      setPlayerPagesByWatch((current) => ({
+        ...current,
+        [team.id]: {
+          count: data.count,
+          next: data.next,
+          previous: data.previous,
+          page: nextPage,
+        },
+      }));
+    } catch (error) {
+      console.error("Nepodarilo sa načítať ďalších hráčov SZFB:", error);
+      setPanelError(loadingKey, "Ďalších hráčov sa nepodarilo načítať.");
+    } finally {
+      setPanelLoading(loadingKey, false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -359,10 +500,14 @@ export default function SportsDataPage() {
           return;
         }
 
-        const data = await getAdminSzfbCompetitions(activeClubSlug);
+        const [data, syncConfig] = await Promise.all([
+          getAdminSzfbCompetitions(activeClubSlug),
+          getAdminSzfbAutoSyncConfig(activeClubSlug),
+        ]);
 
         if (isMounted) {
           setCompetitions(data);
+          applyAutoSyncConfig(syncConfig);
         }
       } catch (error) {
         console.error("Nepodarilo sa načítať SZFB dáta:", error);
@@ -395,6 +540,33 @@ export default function SportsDataPage() {
       window.clearInterval(intervalId);
     };
   }, [hasRunningSync, loadCompetitions]);
+
+  const handleAutoSyncSave = async () => {
+    if (!activeClubSlug || isAutoSyncSaving) {
+      return;
+    }
+
+    setIsAutoSyncSaving(true);
+    setActionMessage("");
+
+    try {
+      const config = await updateAdminSzfbAutoSyncConfig({
+        club_slug: activeClubSlug,
+        is_enabled: autoSyncForm.isEnabled,
+        frequency: "weekly",
+        weekday: Number(autoSyncForm.weekday),
+        run_time: autoSyncForm.runTime,
+      });
+
+      applyAutoSyncConfig(config);
+      setActionMessage("Automatická synchronizácia bola uložená.");
+    } catch (error) {
+      console.error("Nepodarilo sa uložiť SZFB automatiku:", error);
+      setActionMessage("Automatickú synchronizáciu sa nepodarilo uložiť.");
+    } finally {
+      setIsAutoSyncSaving(false);
+    }
+  };
 
   const handleSync = async (competitionId: number) => {
     setSyncingCompetitionId(competitionId);
@@ -455,6 +627,34 @@ export default function SportsDataPage() {
     });
   };
 
+  const openPlayerModal = (player: AdminSzfbPlayerStat) => {
+    setPlayerForm({
+      playerId: player.id,
+      clubPlayerId: player.club_player_id,
+      playerName: player.player_name,
+      jerseyNumber:
+        player.jersey_number === null || player.jersey_number === undefined
+          ? ""
+          : String(player.jersey_number),
+      playerPosition: player.display_position || player.player_position || "",
+      heightCm:
+        player.height_cm === null || player.height_cm === undefined
+          ? ""
+          : String(player.height_cm),
+      weightKg:
+        player.weight_kg === null || player.weight_kg === undefined
+          ? ""
+          : String(player.weight_kg),
+      bio: player.bio || "",
+      isActive: player.is_active,
+      isFeatured: player.is_featured,
+      displayOrder: String(player.display_order || 0),
+      clearPhoto: false,
+      photoFile: null,
+      photoUrl: player.photo_url,
+    });
+  };
+
   const openSettingsCreateModal = () => {
     setSettingsForm({
       ...emptySettingsForm,
@@ -503,8 +703,6 @@ export default function SportsDataPage() {
         clear_photo: playerForm.clearPhoto,
         jersey_number: toOptionalNumber(playerForm.jerseyNumber),
         player_position: playerForm.playerPosition,
-        height_cm: toOptionalNumber(playerForm.heightCm),
-        weight_kg: toOptionalNumber(playerForm.weightKg),
         bio: playerForm.bio,
         is_active: playerForm.isActive,
         is_featured: playerForm.isFeatured,
@@ -594,6 +792,7 @@ export default function SportsDataPage() {
       setStandingsByCompetition({});
       setMatchesByWatch({});
       setPlayersByWatch({});
+      setPlayerPagesByWatch({});
       await loadCompetitions();
     } catch (error) {
       console.error("Nepodarilo sa uložiť SZFB nastavenie:", error);
@@ -703,7 +902,8 @@ export default function SportsDataPage() {
 
   const renderPlayerStats = (
     team: AdminSzfbTeamWatch,
-    players: AdminSzfbPlayerStat[] | undefined
+    players: AdminSzfbPlayerStat[] | undefined,
+    pageState: PlayerStatsPageState | undefined
   ) => {
     if (!players) {
       return (
@@ -729,7 +929,9 @@ export default function SportsDataPage() {
             <p>{team.team_name}</p>
           </div>
 
-          <span>{team.player_stats_count} hráčov</span>
+          <span>
+            {players.length} / {pageState?.count ?? team.player_stats_count} hráčov
+          </span>
         </div>
 
         <div className={styles.tableWrap}>
@@ -738,6 +940,8 @@ export default function SportsDataPage() {
               <tr>
                 <th>#</th>
                 <th>Hráč</th>
+                <th>Číslo</th>
+                <th>Post</th>
                 <th>Rok</th>
                 <th>Z</th>
                 <th>G</th>
@@ -747,6 +951,8 @@ export default function SportsDataPage() {
                 <th>PPP</th>
                 <th>SHP</th>
                 <th>PIM</th>
+                <th>Foto</th>
+                <th>Úprava</th>
               </tr>
             </thead>
             <tbody>
@@ -754,6 +960,8 @@ export default function SportsDataPage() {
                 <tr key={player.id}>
                   <td>{player.rank}</td>
                   <td>{player.player_name}</td>
+                  <td>{player.jersey_number || "—"}</td>
+                  <td>{player.display_position || player.player_position || "—"}</td>
                   <td>{player.birth_year || "—"}</td>
                   <td>{player.games}</td>
                   <td>{player.goals}</td>
@@ -765,11 +973,42 @@ export default function SportsDataPage() {
                   <td>{player.ppp}</td>
                   <td>{player.shp}</td>
                   <td>{player.pim}</td>
+                  <td>{player.photo_url ? "Áno" : "Nie"}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.smallLinkButton}
+                      onClick={() => openPlayerModal(player)}
+                    >
+                      Upraviť
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {detailErrors[`players:${team.id}:more`] ? (
+          <div className={styles.errorBox}>
+            {detailErrors[`players:${team.id}:more`]}
+          </div>
+        ) : null}
+
+        {pageState?.next ? (
+          <div className={styles.panelFooter}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => void loadMorePlayerStats(team)}
+              disabled={detailLoading[`players:${team.id}:more`]}
+            >
+              {detailLoading[`players:${team.id}:more`]
+                ? "Načítavam..."
+                : "Načítať ďalších"}
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   };
@@ -805,7 +1044,10 @@ export default function SportsDataPage() {
           <button
             type="button"
             className={styles.secondaryButton}
-            onClick={() => void loadCompetitions()}
+            onClick={() => {
+              void loadCompetitions();
+              void loadAutoSyncConfig();
+            }}
           >
             Obnoviť
           </button>
@@ -819,6 +1061,117 @@ export default function SportsDataPage() {
           </button>
         </div>
       </header>
+
+      <section className={styles.autoSyncCard}>
+        <div className={styles.autoSyncTop}>
+          <div>
+            <p className={styles.eyebrow}>Automatika</p>
+            <h2>Automatická SZFB synchronizácia</h2>
+            <p>
+              Backend raz za čas skontroluje nastavenie a pri týždennom termíne
+              zosynchronizuje všetky aktívne SZFB súťaže aktuálneho klubu.
+            </p>
+          </div>
+
+          <span
+            className={`${styles.statusBadge} ${
+              autoSyncConfig?.last_status === "error"
+                ? styles.status_error
+                : autoSyncConfig?.last_status === "success"
+                  ? styles.status_success
+                  : styles.status_idle
+            }`}
+          >
+            {autoSyncConfig
+              ? getAutoSyncStatusLabel(autoSyncConfig.last_status)
+              : "Načítavam"}
+          </span>
+        </div>
+
+        <div className={styles.autoSyncForm}>
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={autoSyncForm.isEnabled}
+              onChange={(event) =>
+                setAutoSyncForm((current) => ({
+                  ...current,
+                  isEnabled: event.target.checked,
+                }))
+              }
+              disabled={isAutoSyncLoading}
+            />
+            Automatiku zapnúť
+          </label>
+
+
+          <label className={styles.field}>
+            <span>Deň</span>
+            <select
+              className={styles.select}
+              value={autoSyncForm.weekday}
+              onChange={(event) =>
+                setAutoSyncForm((current) => ({
+                  ...current,
+                  weekday: event.target.value,
+                }))
+              }
+              disabled={isAutoSyncLoading}
+            >
+              {WEEKDAY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span>Čas</span>
+            <input
+              type="time"
+              value={autoSyncForm.runTime}
+              onChange={(event) =>
+                setAutoSyncForm((current) => ({
+                  ...current,
+                  runTime: event.target.value,
+                }))
+              }
+              disabled={isAutoSyncLoading}
+            />
+          </label>
+
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={() => void handleAutoSyncSave()}
+            disabled={isAutoSyncSaving || isAutoSyncLoading || !activeClubSlug}
+          >
+            {isAutoSyncSaving ? "Ukladám..." : "Uložiť automatiku"}
+          </button>
+        </div>
+
+        <div className={styles.autoSyncMeta}>
+          <div>
+            <span>Posledný automatický sync</span>
+            <strong>{formatDateTime(autoSyncConfig?.last_run_at || null)}</strong>
+          </div>
+          <div>
+            <span>Najbližší sync</span>
+            <strong>
+              {formatDateTime(
+                autoSyncConfig?.next_run_at_preview ||
+                  autoSyncConfig?.next_run_at ||
+                  null
+              )}
+            </strong>
+          </div>
+          <div>
+            <span>Posledná správa</span>
+            <strong>{autoSyncConfig?.last_message || "—"}</strong>
+          </div>
+        </div>
+      </section>
 
       {actionMessage ? (
         <div className={styles.messageBox}>{actionMessage}</div>
@@ -1023,7 +1376,11 @@ export default function SportsDataPage() {
                   ) : null}
 
                   {competition.watched_teams.map((team) =>
-                    renderPlayerStats(team, playersByWatch[team.id])
+                    renderPlayerStats(
+                      team,
+                      playersByWatch[team.id],
+                      playerPagesByWatch[team.id]
+                    )
                   )}
                 </section>
               ) : null}
@@ -1087,34 +1444,6 @@ export default function SportsDataPage() {
                 />
               </label>
 
-              <label className={styles.field}>
-                <span>Výška (cm)</span>
-                <input
-                  value={playerForm.heightCm}
-                  onChange={(event) =>
-                    setPlayerForm((current) =>
-                      current ? { ...current, heightCm: event.target.value } : current
-                    )
-                  }
-                  type="number"
-                  min="0"
-                />
-              </label>
-
-              <label className={styles.field}>
-                <span>Váha (kg)</span>
-                <input
-                  value={playerForm.weightKg}
-                  onChange={(event) =>
-                    setPlayerForm((current) =>
-                      current ? { ...current, weightKg: event.target.value } : current
-                    )
-                  }
-                  type="number"
-                  min="0"
-                />
-              </label>
-
               <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Bio</span>
                 <textarea
@@ -1168,6 +1497,7 @@ export default function SportsDataPage() {
                     className={styles.playerPreviewImage}
                     src={playerForm.photoUrl}
                     alt={playerForm.playerName}
+                    loading="lazy"
                   />
                 </div>
               ) : null}

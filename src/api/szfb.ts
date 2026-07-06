@@ -84,6 +84,33 @@ export type AdminSzfbCompetition = {
   watched_teams: AdminSzfbTeamWatch[];
 };
 
+
+export type SzfbAutoSyncFrequency = "weekly";
+export type SzfbAutoSyncStatus = "idle" | "success" | "error" | "skipped";
+
+export type AdminSzfbAutoSyncConfig = {
+  id: number;
+  club_slug: string;
+  club_name: string;
+  is_enabled: boolean;
+  frequency: SzfbAutoSyncFrequency;
+  weekday: number;
+  run_time: string;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  next_run_at_preview: string | null;
+  last_status: SzfbAutoSyncStatus;
+  last_message: string;
+};
+
+export type AdminSzfbAutoSyncConfigPayload = {
+  club_slug: string;
+  is_enabled: boolean;
+  frequency: SzfbAutoSyncFrequency;
+  weekday: number;
+  run_time: string;
+};
+
 export type StartSzfbSyncResponse = {
   status: "started" | "blocked";
   competition_id?: number;
@@ -136,6 +163,29 @@ export async function getAdminSzfbCompetitions(
   return response.data;
 }
 
+
+export async function getAdminSzfbAutoSyncConfig(clubSlug: string) {
+  const response = await api.get<AdminSzfbAutoSyncConfig>(
+    `${ADMIN_API_PREFIX}/szfb/auto-sync/`,
+    {
+      params: { club: clubSlug },
+    }
+  );
+
+  return response.data;
+}
+
+export async function updateAdminSzfbAutoSyncConfig(
+  payload: AdminSzfbAutoSyncConfigPayload
+) {
+  const response = await api.patch<AdminSzfbAutoSyncConfig>(
+    `${ADMIN_API_PREFIX}/szfb/auto-sync/`,
+    payload
+  );
+
+  return response.data;
+}
+
 export async function startAdminSzfbCompetitionSync(competitionId: number) {
   const response = await api.post<StartSzfbSyncResponse>(
     `${ADMIN_API_PREFIX}/szfb/competitions/${competitionId}/sync/`
@@ -178,12 +228,18 @@ export async function getAdminSzfbWatchMatches(
 
 export async function getAdminSzfbWatchPlayers(
   watchId: number,
-  clubSlug?: string
+  clubSlug?: string,
+  page = 1,
+  pageSize = 10
 ) {
-  const response = await api.get<AdminSzfbPlayerStat[]>(
+  const response = await api.get<PaginatedResponse<AdminSzfbPlayerStat>>(
     `${ADMIN_API_PREFIX}/szfb/watches/${watchId}/players/`,
     {
-      params: clubSlug ? { club: clubSlug } : undefined,
+      params: {
+        page,
+        page_size: pageSize,
+        ...(clubSlug ? { club: clubSlug } : {}),
+      },
     }
   );
 
@@ -292,14 +348,6 @@ export type AdminClubPlayerCategory = {
   season: string;
 };
 
-export type AdminClubPlayerStatsSummary = {
-  total_games: number;
-  total_goals: number;
-  total_assists: number;
-  total_points: number;
-  stats_count: number;
-};
-
 export type AdminClubPlayer = {
   id: number;
   full_name: string;
@@ -314,7 +362,6 @@ export type AdminClubPlayer = {
   is_featured: boolean;
   display_order: number;
   categories: AdminClubPlayerCategory[];
-  stats_summary: AdminClubPlayerStatsSummary;
 };
 
 export type AdminClubPlayersQueryParams = {
@@ -374,7 +421,7 @@ export async function getAdminClubPlayers(params: AdminClubPlayersQueryParams) {
       params: {
         club: params.clubSlug,
         page: params.page ?? 1,
-        page_size: params.pageSize ?? 25,
+        page_size: params.pageSize ?? 10,
         ...(params.watchId ? { watch: params.watchId } : {}),
         ...(params.season ? { season: params.season } : {}),
         ...(params.search ? { search: params.search } : {}),

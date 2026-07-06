@@ -45,7 +45,7 @@ type LoadPlayersOptions = {
   append?: boolean;
 };
 
-const PLAYERS_PAGE_SIZE = 25;
+const PLAYERS_PAGE_SIZE = 10;
 
 function toOptionalNumber(value: string) {
   const trimmed = value.trim();
@@ -83,15 +83,6 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Údaje sa nepodarilo uložiť.";
-}
-
-function getDefaultWatchId(competitions: AdminSzfbCompetition[]) {
-  const watchIds = competitions
-    .flatMap((competition) => competition.watched_teams.map((watch) => watch.id))
-    .filter((watchId) => Number.isFinite(watchId))
-    .sort((a, b) => a - b);
-
-  return watchIds.length > 0 ? String(watchIds[0]) : "";
 }
 
 export default function PlayersPage() {
@@ -177,14 +168,10 @@ export default function PlayersPage() {
   }, [competitions, players]);
 
   const stats = useMemo(() => {
-    const activePlayers = players.filter((player) => player.is_active).length;
-    const featuredPlayers = players.filter((player) => player.is_featured).length;
     const withPhoto = players.filter((player) => player.photo_url).length;
 
     return {
       total: playersTotalCount || players.length,
-      active: activePlayers,
-      featured: featuredPlayers,
       withPhoto,
     };
   }, [players, playersTotalCount]);
@@ -276,21 +263,20 @@ export default function PlayersPage() {
           return;
         }
 
-        const competitionData = await loadFilters();
+        await loadFilters();
 
         if (!isMounted) {
           return;
         }
 
-        const defaultWatchId = getDefaultWatchId(competitionData);
         skipNextFilterLoadRef.current = true;
-        setSelectedWatchId(defaultWatchId);
+        setSelectedWatchId("");
         setSelectedSeason("");
         setSearch("");
         setActiveFilter("all");
 
         await fetchPlayers({
-          watchId: defaultWatchId,
+          watchId: "",
           season: "",
           searchValue: "",
           active: "all",
@@ -498,14 +484,6 @@ export default function PlayersPage() {
           <strong>{stats.total}</strong>
         </div>
         <div className={styles.statCard}>
-          <span>Aktívni</span>
-          <strong>{stats.active}</strong>
-        </div>
-        <div className={styles.statCard}>
-          <span>Zvýraznení</span>
-          <strong>{stats.featured}</strong>
-        </div>
-        <div className={styles.statCard}>
           <span>S fotkou</span>
           <strong>{stats.withPhoto}</strong>
         </div>
@@ -590,7 +568,6 @@ export default function PlayersPage() {
                   <th>Pozícia</th>
                   <th>Výška / váha</th>
                   <th>Kategórie</th>
-                  <th>Body</th>
                   <th>Stav</th>
                   <th>Úprava</th>
                 </tr>
@@ -601,15 +578,13 @@ export default function PlayersPage() {
                     <td>
                       <div className={styles.playerCell}>
                         <div className={styles.avatar}>
-                          {player.photo_url ? (
-                            <img src={player.photo_url} alt={player.full_name} />
-                          ) : (
-                            <span>{player.full_name.slice(0, 1).toUpperCase()}</span>
-                          )}
+                          <span>{player.full_name.slice(0, 1).toUpperCase()}</span>
                         </div>
                         <div>
                           <strong>{player.full_name}</strong>
-                          <small>ID {player.id}</small>
+                          <small>
+                            ID {player.id} · Foto: {player.photo_url ? "áno" : "nie"}
+                          </small>
                         </div>
                       </div>
                     </td>
@@ -632,13 +607,6 @@ export default function PlayersPage() {
                           <span className={styles.mutedText}>—</span>
                         )}
                       </div>
-                    </td>
-                    <td>
-                      <strong>{player.stats_summary.total_points}</strong>
-                      <small>
-                        {player.stats_summary.total_goals}G ·{" "}
-                        {player.stats_summary.total_assists}A
-                      </small>
                     </td>
                     <td>
                       <span
@@ -842,6 +810,7 @@ export default function PlayersPage() {
                     className={styles.previewImage}
                     src={playerForm.photoUrl}
                     alt={playerForm.fullName}
+                    loading="lazy"
                   />
                 </div>
               ) : null}
