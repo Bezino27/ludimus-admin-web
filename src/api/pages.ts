@@ -117,6 +117,10 @@ function buildCategoryFormData(payload: AdminTeamCategoryPayload) {
   formData.append("coach_phone", payload.coach_phone);
   formData.append("order", String(payload.order));
   formData.append("is_active", String(payload.is_active));
+  formData.append(
+    "szfb_team_watch",
+    payload.szfb_team_watch ? String(payload.szfb_team_watch) : ""
+  );
 
   if (hasFile(payload.hero_image)) {
     formData.append("hero_image", payload.hero_image);

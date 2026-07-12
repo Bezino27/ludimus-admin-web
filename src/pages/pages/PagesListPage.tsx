@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getPublicPageUrl } from "../../api/config";
-import { getPages } from "../../api/pages";
+import { deletePage, getPages } from "../../api/pages";
 import type { AdminPage } from "../../types/page";
 import styles from "./PagesAdmin.module.css";
 
@@ -37,6 +37,28 @@ function getPublicHref(page: AdminPage) {
   return getPublicPageUrl(page.public_path || "/");
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error
+  ) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    const data = response?.data;
+
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "detail" in data &&
+      typeof (data as { detail?: unknown }).detail === "string"
+    ) {
+      return (data as { detail: string }).detail;
+    }
+  }
+
+  return fallback;
+}
+
 export default function PagesListPage() {
   const navigate = useNavigate();
 
@@ -47,6 +69,7 @@ export default function PagesListPage() {
   const [pageTypeFilter, setPageTypeFilter] = useState("all");
   const [menuGroupFilter, setMenuGroupFilter] = useState("all");
   const [publishedFilter, setPublishedFilter] = useState("all");
+  const [deletingPageId, setDeletingPageId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadPages = async () => {
@@ -106,6 +129,35 @@ export default function PagesListPage() {
       return matchesSearch && matchesType && matchesMenuGroup && matchesPublished;
     });
   }, [pages, search, pageTypeFilter, menuGroupFilter, publishedFilter]);
+
+  const handleDeletePage = async (page: AdminPage) => {
+    if (!page.is_deletable) {
+      setError("Systémová stránka – nie je možné ju odstrániť.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Naozaj chceš odstrániť stránku "${page.title}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingPageId(page.id);
+      setError("");
+      await deletePage(page.id);
+      setPages((current) => current.filter((item) => item.id !== page.id));
+    } catch (err) {
+      console.error("Odstránenie stránky zlyhalo", err);
+      setError(
+        getApiErrorMessage(err, "Stránku sa nepodarilo odstrániť.")
+      );
+    } finally {
+      setDeletingPageId(null);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -258,6 +310,25 @@ export default function PagesListPage() {
                       >
                         Náhľad
                       </a>
+                      {page.is_deletable ? (
+                        <button
+                          type="button"
+                          className={styles.dangerActionButton}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDeletePage(page);
+                          }}
+                          disabled={deletingPageId === page.id}
+                        >
+                          {deletingPageId === page.id
+                            ? "Mažem..."
+                            : "Odstrániť"}
+                        </button>
+                      ) : (
+                        <span className={styles.systemPageNotice}>
+                          Systémová stránka
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>

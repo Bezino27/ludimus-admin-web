@@ -85,6 +85,15 @@
   color: #b91c1c;
 }
 
+.systemPageNotice {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .primaryButton:hover,
 .secondaryButton:hover,
 .ghostButton:hover,

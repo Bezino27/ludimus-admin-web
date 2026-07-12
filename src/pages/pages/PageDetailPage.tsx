@@ -41,6 +41,28 @@ const MENU_GROUP_OPTIONS = [
   ["footer", "Iba footer"],
 ];
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error
+  ) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    const data = response?.data;
+
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "detail" in data &&
+      typeof (data as { detail?: unknown }).detail === "string"
+    ) {
+      return (data as { detail: string }).detail;
+    }
+  }
+
+  return fallback;
+}
+
 const SYSTEM_PAGE_PATHS: Record<string, string> = {
   home: "/",
   about: "/o-klube",
@@ -368,6 +390,11 @@ export default function PageDetailPage() {
   const handleDeletePage = async () => {
     if (!id || !page) return;
 
+    if (!page.is_deletable) {
+      setError("Systémová stránka – nie je možné ju odstrániť.");
+      return;
+    }
+
     const confirmed = window.confirm(
       `Naozaj chceš odstrániť stránku "${page.title}"? Táto akcia odstráni aj jej sekcie a nedá sa vrátiť späť.`
     );
@@ -383,7 +410,9 @@ export default function PageDetailPage() {
       });
     } catch (err) {
       console.error("Odstránenie stránky zlyhalo", err);
-      setError("Stránku sa nepodarilo odstrániť.");
+      setError(
+        getApiErrorMessage(err, "Stránku sa nepodarilo odstrániť.")
+      );
     } finally {
       setDeletingPage(false);
     }
@@ -664,14 +693,20 @@ export default function PageDetailPage() {
           <button type="submit" className={styles.primaryButton} disabled={saving}>
             {saving ? "Ukladám..." : "Uložiť"}
           </button>
-          <button
-            type="button"
-            className={styles.dangerActionButton}
-            onClick={handleDeletePage}
-            disabled={deletingPage}
-          >
-            {deletingPage ? "Odstraňujem..." : "Odstrániť stránku"}
-          </button>
+          {page.is_deletable ? (
+            <button
+              type="button"
+              className={styles.dangerActionButton}
+              onClick={handleDeletePage}
+              disabled={deletingPage}
+            >
+              {deletingPage ? "Odstraňujem..." : "Odstrániť stránku"}
+            </button>
+          ) : (
+            <span className={styles.systemPageNotice}>
+              Systémová stránka – nie je možné ju odstrániť.
+            </span>
+          )}
         </div>
       </div>
 

@@ -7,7 +7,9 @@ import {
   getTeamCategoriesByClub,
   updateTeamCategory,
 } from "../../api/pages";
+import { getAdminSzfbCompetitions } from "../../api/szfb";
 import { useAuth } from "../../context/useAuth";
+import type { AdminSzfbCompetition } from "../../api/szfb";
 import type {
   AdminClubSeason,
   AdminTeamCategory,
@@ -36,6 +38,7 @@ const emptyForm = {
   coach_phone: "",
   order: 0,
   is_active: true,
+  szfb_team_watch: null as number | null,
 };
 
 function slugify(value: string) {
@@ -60,6 +63,9 @@ export default function CategoriesPage() {
 
   const [clubSeason, setClubSeason] = useState<AdminClubSeason | null>(null);
   const [categories, setCategories] = useState<AdminTeamCategory[]>([]);
+  const [szfbCompetitions, setSzfbCompetitions] = useState<
+    AdminSzfbCompetition[]
+  >([]);
   const [form, setForm] = useState(emptyForm);
   const [selectedCategory, setSelectedCategory] =
     useState<AdminTeamCategory | null>(null);
@@ -97,6 +103,28 @@ export default function CategoriesPage() {
     };
   }, [categories]);
 
+  const szfbWatchOptions = useMemo(() => {
+    return szfbCompetitions
+      .flatMap((competition) =>
+        competition.watched_teams.map((watch) => ({
+          id: watch.id,
+          label: watch.label,
+          teamName: watch.team_name,
+          competitionName: competition.name,
+          season: competition.season,
+        }))
+      )
+      .sort((a, b) => {
+        const seasonCompare = b.season.localeCompare(a.season);
+
+        if (seasonCompare !== 0) {
+          return seasonCompare;
+        }
+
+        return a.label.localeCompare(b.label, "sk");
+      });
+  }, [szfbCompetitions]);
+
   async function loadData() {
     if (!activeClubSlug) {
       setIsLoading(false);
@@ -109,7 +137,10 @@ export default function CategoriesPage() {
     setMessage("");
 
     try {
-      const seasonData = await getCurrentClubSeason(activeClubSlug);
+      const [seasonData, competitionsData] = await Promise.all([
+        getCurrentClubSeason(activeClubSlug),
+        getAdminSzfbCompetitions(activeClubSlug),
+      ]);
       const categoryData = await getTeamCategoriesByClub(
         activeClubSlug,
         seasonData.season
@@ -117,6 +148,7 @@ export default function CategoriesPage() {
 
       setClubSeason(seasonData);
       setCategories(categoryData);
+      setSzfbCompetitions(competitionsData);
 
       setForm((current) => ({
         ...current,
@@ -146,7 +178,7 @@ export default function CategoriesPage() {
   }
 
   function handleInputChange(
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     const { name, value, type } = event.target;
 
@@ -174,11 +206,12 @@ export default function CategoriesPage() {
     if (
       name === "birth_year_from" ||
       name === "birth_year_to" ||
-      name === "order"
+      name === "order" ||
+      name === "szfb_team_watch"
     ) {
       setForm((current) => ({
         ...current,
-        [name]: Number(value),
+        [name]: value ? Number(value) : name === "szfb_team_watch" ? null : 0,
       }));
 
       return;
@@ -219,6 +252,7 @@ export default function CategoriesPage() {
       coach_phone: category.coach_phone || "",
       order: category.order,
       is_active: category.is_active,
+      szfb_team_watch: category.szfb_team_watch_id ?? category.szfb_watch_id,
     });
 
     window.requestAnimationFrame(() => {
@@ -248,6 +282,7 @@ export default function CategoriesPage() {
       coach_phone: form.coach_phone,
       order: form.order,
       is_active: form.is_active,
+      szfb_team_watch: form.szfb_team_watch,
     };
   }
 
@@ -444,7 +479,9 @@ export default function CategoriesPage() {
                             <span>{category.szfb_competition_name || ""}</span>
                           </>
                         ) : (
-                          <span className={styles.mutedText}>Nenájdené</span>
+                          <span className={styles.mutedText}>
+                            Bez SZFB sledovania
+                          </span>
                         )}
                       </td>
 
@@ -635,19 +672,21 @@ export default function CategoriesPage() {
             />
           </label>
 
-          {selectedCategory ? (
-            <div className={styles.szfbBox}>
-              <strong>SZFB napojenie</strong>
-              <span>
-                {selectedCategory.szfb_watch_label ||
-                  "Automatické napojenie nenájdené"}
-              </span>
-
-              {selectedCategory.szfb_competition_name ? (
-                <small>{selectedCategory.szfb_competition_name}</small>
-              ) : null}
-            </div>
-          ) : null}
+          <label className={styles.field}>
+            <span>SZFB sledovanie</span>
+            <select
+              name="szfb_team_watch"
+              value={form.szfb_team_watch ?? ""}
+              onChange={handleInputChange}
+            >
+              <option value="">Bez SZFB sledovania</option>
+              {szfbWatchOptions.map((watch) => (
+                <option key={watch.id} value={watch.id}>
+                  {watch.label} — {watch.competitionName} ({watch.season})
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label className={styles.checkboxField}>
             <input

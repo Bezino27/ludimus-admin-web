@@ -17,6 +17,7 @@ export type AdminPage = {
   team_category_name?: string | null;
   team_category_slug?: string | null;
   public_path: string;
+  is_deletable: boolean;
   meta_title: string;
   meta_description: string;
   og_image: string | null;
@@ -64,6 +65,11 @@ export type AdminTeamCategory = {
   coach_phone: string;
   order: number;
   is_active: boolean;
+  szfb_team_watch: number | null;
+  szfb_team_watch_id: number | null;
+  szfb_team_watch_label: string | null;
+  szfb_team_watch_competition_name: string | null;
+  szfb_team_watch_competition_season: string | null;
   szfb_watch_id: number | null;
   szfb_watch_label: string | null;
   szfb_competition_name: string | null;
@@ -86,6 +92,7 @@ export type AdminTeamCategoryPayload = {
   coach_phone: string;
   order: number;
   is_active: boolean;
+  szfb_team_watch: number | null;
 };
 
 export type AdminPageSection = {
