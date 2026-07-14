@@ -75,6 +75,8 @@ export type AdminTeamCategory = {
   szfb_competition_name: string | null;
   created_at: string;
   updated_at: string;
+  trainings: AdminCategoryTraining[];
+  links: AdminCategoryLink[];
 };
 
 export type AdminTeamCategoryPayload = {
@@ -232,4 +234,77 @@ export type AdminClubSeason = {
 export type UpdateAdminClubSeasonPayload = {
   season: string;
   recalculate_categories?: boolean;
+};
+
+export type AdminTrainingLocation = {
+  id: number;
+  club: number;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminTrainingLocationPayload = {
+  club: number;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+  is_active: boolean;
+};
+
+export type AdminCategoryTraining = {
+  id: number;
+  category: number;
+  location: number;
+  location_name: string;
+  location_address: string;
+  latitude: number;
+  longitude: number;
+  weekday: number;
+  day: string;
+  start_time: string;
+  time: string;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminCategoryTrainingPayload = {
+  category: number;
+  location: number;
+  weekday: number;
+  start_time: string;
+  order: number;
+  is_active: boolean;
+};
+
+export type AdminCategoryLink = {
+  id: number;
+  category: number;
+  title: string;
+  description: string;
+  cta_text: string;
+  url: string;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminCategoryLinkPayload = {
+  category: number;
+  title: string;
+  description: string;
+  cta_text: string;
+  url: string;
+  order: number;
+  is_active: boolean;
 };

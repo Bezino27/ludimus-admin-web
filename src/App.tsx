@@ -17,6 +17,7 @@ import ClubInfoPage from "./pages/club-info/ClubInfoPage";
 import CategoriesPage from "./pages/categories/CategoriesPage";
 import SportsDataPage from "./pages/sports-data/SportsDataPage";
 import PlayersPage from "./pages/players/PlayersPage";
+import PartnersPage from "./pages/partners/PartnersPage";
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="polls/:id/edit" element={<PollEditPage />} />
 
           <Route path="club-info" element={<ClubInfoPage />} />
+          <Route path="partners" element={<PartnersPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="sports-data" element={<SportsDataPage />} />
           <Route path="players" element={<PlayersPage />} />

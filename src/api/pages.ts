@@ -446,3 +446,110 @@ export const updatePageSectionContactItem = async (
 export const deletePageSectionContactItem = async (id: number | string) => {
   await api.delete(`${ADMIN_API_PREFIX}/pages/section-contact-items/${id}/`);
 };
+
+// # TRAINING LOCATIONS
+export const getTrainingLocations = async (
+  clubSlug: string
+): Promise<import("../types/page").AdminTrainingLocation[]> => {
+  const response = await api.get<
+    import("../types/page").AdminTrainingLocation[] | {
+      results?: import("../types/page").AdminTrainingLocation[];
+    }
+  >(`${ADMIN_API_PREFIX}/teams/training-locations/?club=${encodeURIComponent(clubSlug)}`);
+  return normalizeList(response.data);
+};
+
+export const createTrainingLocation = async (
+  payload: import("../types/page").AdminTrainingLocationPayload
+) => {
+  const response = await api.post<import("../types/page").AdminTrainingLocation>(
+    `${ADMIN_API_PREFIX}/teams/training-locations/`,
+    payload
+  );
+  return response.data;
+};
+
+export const updateTrainingLocation = async (
+  id: number,
+  payload: import("../types/page").AdminTrainingLocationPayload
+) => {
+  const response = await api.patch<import("../types/page").AdminTrainingLocation>(
+    `${ADMIN_API_PREFIX}/teams/training-locations/${id}/`,
+    payload
+  );
+  return response.data;
+};
+
+export const deleteTrainingLocation = async (id: number) => {
+  await api.delete(`${ADMIN_API_PREFIX}/teams/training-locations/${id}/`);
+};
+
+// # CATEGORY TRAININGS
+export const getCategoryTrainings = async (categoryId: number) => {
+  const response = await api.get<
+    import("../types/page").AdminCategoryTraining[] | {
+      results?: import("../types/page").AdminCategoryTraining[];
+    }
+  >(`${ADMIN_API_PREFIX}/teams/category-trainings/?category=${categoryId}`);
+  return normalizeList(response.data);
+};
+
+export const createCategoryTraining = async (
+  payload: import("../types/page").AdminCategoryTrainingPayload
+) => {
+  const response = await api.post<import("../types/page").AdminCategoryTraining>(
+    `${ADMIN_API_PREFIX}/teams/category-trainings/`,
+    payload
+  );
+  return response.data;
+};
+
+export const updateCategoryTraining = async (
+  id: number,
+  payload: import("../types/page").AdminCategoryTrainingPayload
+) => {
+  const response = await api.patch<import("../types/page").AdminCategoryTraining>(
+    `${ADMIN_API_PREFIX}/teams/category-trainings/${id}/`,
+    payload
+  );
+  return response.data;
+};
+
+export const deleteCategoryTraining = async (id: number) => {
+  await api.delete(`${ADMIN_API_PREFIX}/teams/category-trainings/${id}/`);
+};
+
+// # CATEGORY LINKS
+export const getCategoryLinks = async (categoryId: number) => {
+  const response = await api.get<
+    import("../types/page").AdminCategoryLink[] | {
+      results?: import("../types/page").AdminCategoryLink[];
+    }
+  >(`${ADMIN_API_PREFIX}/teams/category-links/?category=${categoryId}`);
+  return normalizeList(response.data);
+};
+
+export const createCategoryLink = async (
+  payload: import("../types/page").AdminCategoryLinkPayload
+) => {
+  const response = await api.post<import("../types/page").AdminCategoryLink>(
+    `${ADMIN_API_PREFIX}/teams/category-links/`,
+    payload
+  );
+  return response.data;
+};
+
+export const updateCategoryLink = async (
+  id: number,
+  payload: import("../types/page").AdminCategoryLinkPayload
+) => {
+  const response = await api.patch<import("../types/page").AdminCategoryLink>(
+    `${ADMIN_API_PREFIX}/teams/category-links/${id}/`,
+    payload
+  );
+  return response.data;
+};
+
+export const deleteCategoryLink = async (id: number) => {
+  await api.delete(`${ADMIN_API_PREFIX}/teams/category-links/${id}/`);
+};

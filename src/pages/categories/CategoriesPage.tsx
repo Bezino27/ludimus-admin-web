@@ -16,6 +16,7 @@ import type {
   AdminTeamCategoryPayload,
 } from "../../types/page";
 import styles from "./CategoriesPage.module.css";
+import CategoryExtrasEditor from "./CategoryExtrasEditor.tsx";
 
 type MinimalMembership = {
   is_active: boolean;
@@ -69,6 +70,7 @@ export default function CategoriesPage() {
   const [form, setForm] = useState(emptyForm);
   const [selectedCategory, setSelectedCategory] =
     useState<AdminTeamCategory | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,14 +169,32 @@ export default function CategoriesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeClubSlug]);
 
-  function resetForm() {
+  function closeEditor() {
     setSelectedCategory(null);
+    setIsEditorOpen(false);
     setForm({
       ...emptyForm,
       season: clubSeason?.season || "",
     });
     setMessage("");
     setErrorMessage("");
+  }
+
+  function openCreateForm() {
+    setSelectedCategory(null);
+    setIsEditorOpen(true);
+    setForm({
+      ...emptyForm,
+      season: clubSeason?.season || "",
+    });
+    setMessage("");
+    setErrorMessage("");
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("category-editor")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function handleInputChange(
@@ -234,6 +254,7 @@ export default function CategoriesPage() {
 
   function handleEdit(category: AdminTeamCategory) {
     setSelectedCategory(category);
+    setIsEditorOpen(true);
     setMessage("");
     setErrorMessage("");
 
@@ -257,7 +278,7 @@ export default function CategoriesPage() {
 
     window.requestAnimationFrame(() => {
       document
-        .getElementById("category-form")
+        .getElementById("category-editor")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -304,7 +325,7 @@ export default function CategoriesPage() {
         setMessage("Kategória bola vytvorená.");
       }
 
-      resetForm();
+      closeEditor();
       await loadData();
     } catch (error) {
       console.error(error);
@@ -332,7 +353,7 @@ export default function CategoriesPage() {
       await deleteTeamCategory(category.id);
 
       if (selectedCategory?.id === category.id) {
-        resetForm();
+        closeEditor();
       }
 
       setMessage("Kategória bola odstránená.");
@@ -369,7 +390,7 @@ export default function CategoriesPage() {
         <button
           type="button"
           className={styles.primaryButton}
-          onClick={resetForm}
+          onClick={openCreateForm}
         >
           Nová kategória
         </button>
@@ -403,7 +424,7 @@ export default function CategoriesPage() {
 
       {message ? <div className={styles.successBox}>{message}</div> : null}
 
-      <div className={styles.twoColumn}>
+      <div className={styles.categoriesLayout}>
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <div>
@@ -526,203 +547,251 @@ export default function CategoriesPage() {
           )}
         </section>
 
-        <form
-          id="category-form"
-          className={styles.sideForm}
-          onSubmit={handleSubmit}
-        >
-          <div>
-            <p className={styles.cardEyebrow}>
-              {selectedCategory ? "Úprava kategórie" : "Nová kategória"}
-            </p>
-            <h2>
-              {selectedCategory ? selectedCategory.name : "Pridať kategóriu"}
-            </h2>
-          </div>
+        {isEditorOpen ? (
+          <section id="category-editor" className={styles.editorPanel}>
+            <div className={styles.editorHeader}>
+              <div>
+                <p className={styles.cardEyebrow}>
+                  {selectedCategory ? "Úprava kategórie" : "Nová kategória"}
+                </p>
+                <h2>
+                  {selectedCategory ? selectedCategory.name : "Pridať kategóriu"}
+                </h2>
+                <p className={styles.cardText}>
+                  Uprav základné údaje kategórie, trénera, SZFB napojenie,
+                  tréningy a odkazy na jednom mieste.
+                </p>
+              </div>
 
-          <label className={styles.field}>
-            <span>Názov</span>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleInputChange}
-              required
-              placeholder="Dorast"
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Slug</span>
-            <input
-              name="slug"
-              value={form.slug}
-              onChange={handleInputChange}
-              required
-              placeholder="dorast"
-            />
-          </label>
-
-          <div className={styles.formGridCompact}>
-            <label className={styles.field}>
-              <span>Sezóna</span>
-              <input
-                name="season"
-                value={form.season}
-                onChange={handleInputChange}
-                required
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Poradie</span>
-              <input
-                name="order"
-                type="number"
-                value={form.order}
-                onChange={handleInputChange}
-              />
-            </label>
-          </div>
-
-          <div className={styles.formGridCompact}>
-            <label className={styles.field}>
-              <span>Ročník od</span>
-              <input
-                name="birth_year_from"
-                type="number"
-                value={form.birth_year_from}
-                onChange={handleInputChange}
-                required
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Ročník do</span>
-              <input
-                name="birth_year_to"
-                type="number"
-                value={form.birth_year_to}
-                onChange={handleInputChange}
-                required
-              />
-            </label>
-          </div>
-
-          <label className={styles.field}>
-            <span>Krátky názov</span>
-            <input
-              name="category_subname"
-              value={form.category_subname}
-              onChange={handleInputChange}
-              placeholder="U17"
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Názov ligy</span>
-            <input
-              name="league_name"
-              value={form.league_name}
-              onChange={handleInputChange}
-              placeholder="Slovenská florbalová extraliga"
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Hero obrázok</span>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
-
-          {selectedCategory?.hero_image_url ? (
-            <img
-              src={selectedCategory.hero_image_url}
-              alt=""
-              className={styles.heroPreview}
-            />
-          ) : null}
-
-          <label className={styles.field}>
-            <span>Tréner</span>
-            <input
-              name="coach_name"
-              value={form.coach_name}
-              onChange={handleInputChange}
-              placeholder="Tomáš Bezeg"
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Email trénera</span>
-            <input
-              name="coach_email"
-              type="email"
-              value={form.coach_email}
-              onChange={handleInputChange}
-              placeholder="trener@email.sk"
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Telefón trénera</span>
-            <input
-              name="coach_phone"
-              value={form.coach_phone}
-              onChange={handleInputChange}
-              placeholder="+421..."
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>SZFB sledovanie</span>
-            <select
-              name="szfb_team_watch"
-              value={form.szfb_team_watch ?? ""}
-              onChange={handleInputChange}
-            >
-              <option value="">Bez SZFB sledovania</option>
-              {szfbWatchOptions.map((watch) => (
-                <option key={watch.id} value={watch.id}>
-                  {watch.label} — {watch.competitionName} ({watch.season})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className={styles.checkboxField}>
-            <input
-              type="checkbox"
-              name="is_active"
-              checked={form.is_active}
-              onChange={handleInputChange}
-            />
-            Zobraziť na webe
-          </label>
-
-          <div className={styles.formActions}>
-            {selectedCategory ? (
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={resetForm}
+                onClick={closeEditor}
                 disabled={isSaving}
               >
-                Zrušiť úpravu
+                Zatvoriť
               </button>
-            ) : null}
+            </div>
 
-            <button
-              type="submit"
-              className={styles.primaryButton}
-              disabled={isSaving}
-            >
-              {isSaving
-                ? "Ukladám..."
-                : selectedCategory
-                  ? "Uložiť zmeny"
-                  : "Vytvoriť kategóriu"}
-            </button>
-          </div>
-        </form>
+            <form className={styles.editorForm} onSubmit={handleSubmit}>
+              <div className={styles.editorSection}>
+                <div className={styles.editorSectionHeader}>
+                  <p className={styles.cardEyebrow}>Základné údaje</p>
+                  <h3>Identita kategórie</h3>
+                </div>
+
+                <div className={styles.editorGrid}>
+                  <label className={styles.field}>
+                    <span>Názov</span>
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Dorast"
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Slug</span>
+                    <input
+                      name="slug"
+                      value={form.slug}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="dorast"
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Sezóna</span>
+                    <input
+                      name="season"
+                      value={form.season}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Poradie</span>
+                    <input
+                      name="order"
+                      type="number"
+                      value={form.order}
+                      onChange={handleInputChange}
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Ročník od</span>
+                    <input
+                      name="birth_year_from"
+                      type="number"
+                      value={form.birth_year_from}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Ročník do</span>
+                    <input
+                      name="birth_year_to"
+                      type="number"
+                      value={form.birth_year_to}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Krátky názov</span>
+                    <input
+                      name="category_subname"
+                      value={form.category_subname}
+                      onChange={handleInputChange}
+                      placeholder="U17"
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Názov ligy</span>
+                    <input
+                      name="league_name"
+                      value={form.league_name}
+                      onChange={handleInputChange}
+                      placeholder="Slovenská florbalová extraliga"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.editorSection}>
+                <div className={styles.editorSectionHeader}>
+                  <p className={styles.cardEyebrow}>Web a tréner</p>
+                  <h3>Prezentácia kategórie</h3>
+                </div>
+
+                <div className={styles.editorGrid}>
+                  <label className={styles.field}>
+                    <span>Hero obrázok</span>
+                    <input type="file" accept="image/*" onChange={handleFileChange} />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Tréner</span>
+                    <input
+                      name="coach_name"
+                      value={form.coach_name}
+                      onChange={handleInputChange}
+                      placeholder="Tomáš Bezeg"
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Email trénera</span>
+                    <input
+                      name="coach_email"
+                      type="email"
+                      value={form.coach_email}
+                      onChange={handleInputChange}
+                      placeholder="trener@email.sk"
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Telefón trénera</span>
+                    <input
+                      name="coach_phone"
+                      value={form.coach_phone}
+                      onChange={handleInputChange}
+                      placeholder="+421..."
+                    />
+                  </label>
+                </div>
+
+                {selectedCategory?.hero_image_url ? (
+                  <img
+                    src={selectedCategory.hero_image_url}
+                    alt=""
+                    className={styles.heroPreview}
+                  />
+                ) : null}
+              </div>
+
+              <div className={styles.editorSection}>
+                <div className={styles.editorSectionHeader}>
+                  <p className={styles.cardEyebrow}>SZFB</p>
+                  <h3>Napojenie športových dát</h3>
+                </div>
+
+                <div className={styles.editorGrid}>
+                  <label className={styles.field}>
+                    <span>SZFB sledovanie</span>
+                    <select
+                      name="szfb_team_watch"
+                      value={form.szfb_team_watch ?? ""}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Bez SZFB sledovania</option>
+                      {szfbWatchOptions.map((watch) => (
+                        <option key={watch.id} value={watch.id}>
+                          {watch.label} — {watch.competitionName} ({watch.season})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      name="is_active"
+                      checked={form.is_active}
+                      onChange={handleInputChange}
+                    />
+                    Zobraziť na webe
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={closeEditor}
+                  disabled={isSaving}
+                >
+                  Zrušiť úpravu
+                </button>
+
+                <button
+                  type="submit"
+                  className={styles.primaryButton}
+                  disabled={isSaving}
+                >
+                  {isSaving
+                    ? "Ukladám..."
+                    : selectedCategory
+                      ? "Uložiť zmeny"
+                      : "Vytvoriť kategóriu"}
+                </button>
+              </div>
+            </form>
+
+            {selectedCategory && clubSeason ? (
+              <CategoryExtrasEditor
+                categoryId={selectedCategory.id}
+                clubId={clubSeason.club}
+                clubSlug={activeClubSlug}
+              />
+            ) : (
+              <div className={styles.extrasHint}>
+                Po vytvorení kategórie sa tu zobrazí správa tréningov, miest a odkazov.
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
     </div>
   );

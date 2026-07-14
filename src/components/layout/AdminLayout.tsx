@@ -17,6 +17,7 @@ type NavItem = {
     | "pages"
     | "polls"
     | "club-info"
+    | "partners"
     | "categories"
     | "players"
     | "sports-data";
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: "dashboard" },
   { to: "/pages", label: "Stránky", icon: "pages" },
   { to: "/club-info", label: "Klubové informácie", icon: "club-info" },
+  { to: "/partners", label: "Partneri", icon: "partners" },
   { to: "/categories", label: "Kategórie", icon: "categories" },
   { to: "/players", label: "Hráči", icon: "players" },
   { to: "/posts", label: "Články", icon: "posts" },
@@ -34,78 +36,37 @@ const navItems: NavItem[] = [
 ];
 
 function NavIcon({ name }: { name: NavItem["icon"] }) {
-  if (name === "dashboard") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5v4A1.5 1.5 0 0 1 9.5 11h-4A1.5 1.5 0 0 1 4 9.5v-4Zm9 0A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 13 9.5v-4Zm-9 9A1.5 1.5 0 0 1 5.5 13h4a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 9.5 20h-4A1.5 1.5 0 0 1 4 18.5v-4Zm9 0a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4Z" />
-      </svg>
-    );
-  }
-
-  if (name === "posts") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 4h12a2 2 0 0 1 2 2v12.5a1.5 1.5 0 0 1-2.28 1.28L15.8 18.6a1.5 1.5 0 0 0-.78-.22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 4.25a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H8Z" />
-      </svg>
-    );
-  }
-
-  if (name === "pages") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 3.5h7.2c.4 0 .78.16 1.06.44l3.8 3.8c.28.28.44.66.44 1.06V18A2.5 2.5 0 0 1 17 20.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Zm7 1.9V8a1 1 0 0 0 1 1h2.6L14 5.4ZM8 12a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H8Z" />
-      </svg>
-    );
-  }
-
-  if (name === "club-info") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 20V9.35L12 4l8 5.35V20h-5.25v-5.75h-5.5V20H4Zm2-2h1.25v-5.75h9.5V18H18V10.42l-6-4.02-6 4.02V18Zm3-8.25h6v1.8H9v-1.8Z" />
-      </svg>
-    );
-  }
-
-  if (name === "categories") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h3A2.5 2.5 0 0 1 12 5.5v3A2.5 2.5 0 0 1 9.5 11h-3A2.5 2.5 0 0 1 4 8.5v-3Zm8 0A2.5 2.5 0 0 1 14.5 3h3A2.5 2.5 0 0 1 20 5.5v3a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 12 8.5v-3ZM4 15.5A2.5 2.5 0 0 1 6.5 13h3a2.5 2.5 0 0 1 2.5 2.5v3A2.5 2.5 0 0 1 9.5 21h-3A2.5 2.5 0 0 1 4 18.5v-3Zm8 0a2.5 2.5 0 0 1 2.5-2.5h3a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-3a2.5 2.5 0 0 1-2.5-2.5v-3Z" />
-      </svg>
-    );
-  }
-
-  if (name === "players") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7.25 7.5c0-3.17 3.36-5.75 7.25-5.75s7.25 2.58 7.25 5.75a.75.75 0 0 1-.75.75h-13a.75.75 0 0 1-.75-.75Zm14.5-6.95a3.6 3.6 0 0 1 2.5 3.43.75.75 0 0 1-.75.77h-1.15a7.48 7.48 0 0 0-2.2-3.26 7.9 7.9 0 0 0-1.2-.87 5.74 5.74 0 0 1 2.8-.07ZM17.2 11.5a3.25 3.25 0 1 0 0-6.5c-.37 0-.73.06-1.06.18a5.74 5.74 0 0 1 .13 6.14c.3.12.62.18.93.18Z" />
-      </svg>
-    );
-  }
-
-
-  if (name === "sports-data") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v15A2.5 2.5 0 0 1 16.5 22h-9A2.5 2.5 0 0 1 5 19.5v-15Zm3 2.25a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3.5a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm1 4.75a1 1 0 0 0-1 1v1.25a1 1 0 0 0 1 1h1.25a1 1 0 0 0 1-1V16a1 1 0 0 0-1-1H9Zm4.75 0a1 1 0 0 0-1 1v1.25a1 1 0 0 0 1 1H15a1 1 0 0 0 1-1V16a1 1 0 0 0-1-1h-1.25Z" />
-      </svg>
-    );
-  }
+  const paths: Record<NavItem["icon"], string> = {
+    dashboard:
+      "M4 5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5v4A1.5 1.5 0 0 1 9.5 11h-4A1.5 1.5 0 0 1 4 9.5v-4Zm9 0A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 13 9.5v-4Zm-9 9A1.5 1.5 0 0 1 5.5 13h4a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 9.5 20h-4A1.5 1.5 0 0 1 4 18.5v-4Zm9 0a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4Z",
+    posts:
+      "M6 4h12a2 2 0 0 1 2 2v12.5a1.5 1.5 0 0 1-2.28 1.28L15.8 18.6a1.5 1.5 0 0 0-.78-.22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 4.25a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H8Z",
+    pages:
+      "M7 3.5h7.2c.4 0 .78.16 1.06.44l3.8 3.8c.28.28.44.66.44 1.06V18A2.5 2.5 0 0 1 17 20.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Zm7 1.9V8a1 1 0 0 0 1 1h2.6L14 5.4ZM8 12a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H8Z",
+    "club-info":
+      "M4 20V9.35L12 4l8 5.35V20h-5.25v-5.75h-5.5V20H4Zm2-2h1.25v-5.75h9.5V18H18V10.42l-6-4.02-6 4.02V18Zm3-8.25h6v1.8H9v-1.8Z",
+    partners:
+      "M12 3.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm-6.5 2A2.5 2.5 0 1 1 5.5 10a2.5 2.5 0 0 1 0-5Zm13 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM12 12c3.67 0 6.5 2.1 6.5 4.75V20h-13v-3.25C5.5 14.1 8.33 12 12 12Zm-6.5-.5c.67 0 1.3.1 1.88.27A7.07 7.07 0 0 0 3.5 17v1H1v-2.25c0-2.37 1.98-4.25 4.5-4.25Zm13 0c2.52 0 4.5 1.88 4.5 4.25V18h-2.5v-1a7.07 7.07 0 0 0-3.88-5.23c.59-.17 1.21-.27 1.88-.27Z",
+    categories:
+      "M4 5.5A2.5 2.5 0 0 1 6.5 3h3A2.5 2.5 0 0 1 12 5.5v3A2.5 2.5 0 0 1 9.5 11h-3A2.5 2.5 0 0 1 4 8.5v-3Zm8 0A2.5 2.5 0 0 1 14.5 3h3A2.5 2.5 0 0 1 20 5.5v3a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 12 8.5v-3ZM4 15.5A2.5 2.5 0 0 1 6.5 13h3a2.5 2.5 0 0 1 2.5 2.5v3A2.5 2.5 0 0 1 9.5 21h-3A2.5 2.5 0 0 1 4 18.5v-3Zm8 0a2.5 2.5 0 0 1 2.5-2.5h3a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-3a2.5 2.5 0 0 1-2.5-2.5v-3Z",
+    players:
+      "M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7.25 7.5c0-3.17 3.36-5.75 7.25-5.75s7.25 2.58 7.25 5.75a.75.75 0 0 1-.75.75h-13a.75.75 0 0 1-.75-.75Z",
+    polls:
+      "M7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H8.5l-3.02 2.27A.9.9 0 0 1 4 17.55V7.5A2.5 2.5 0 0 1 6.5 5H7Zm1.5 4.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z",
+    "sports-data":
+      "M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v15A2.5 2.5 0 0 1 16.5 22h-9A2.5 2.5 0 0 1 5 19.5v-15Zm3 2.25a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Zm0 3.5a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5H8Z",
+  };
 
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H8.5l-3.02 2.27A.9.9 0 0 1 4 17.55V7.5A2.5 2.5 0 0 1 6.5 5H7Zm1.5 4.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm3.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" />
+      <path d={paths[name]} />
     </svg>
   );
 }
 
 function getSeasonStartYear(season: string) {
   const match = season.match(/^(\d{4})\/(\d{4})$/);
-
-  if (!match) {
-    return null;
-  }
-
-  return Number(match[1]);
+  return match ? Number(match[1]) : null;
 }
 
 function formatSeason(startYear: number) {
@@ -116,23 +77,17 @@ function getFallbackSeason() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  const startYear = month >= 6 ? year : year - 1;
-
-  return formatSeason(startYear);
+  return formatSeason(month >= 6 ? year : year - 1);
 }
 
 function buildSeasonOptions(clubSeason: AdminClubSeason | null) {
   const seasons = new Set<string>();
 
   clubSeason?.available_seasons?.forEach((season) => {
-    if (season) {
-      seasons.add(season);
-    }
+    if (season) seasons.add(season);
   });
 
-  if (clubSeason?.season) {
-    seasons.add(clubSeason.season);
-  }
+  if (clubSeason?.season) seasons.add(clubSeason.season);
 
   const baseSeason = clubSeason?.season || getFallbackSeason();
   const startYear = getSeasonStartYear(baseSeason);
@@ -160,16 +115,13 @@ export default function AdminLayout() {
     user?.memberships?.[0];
 
   const activeClubSlug = activeClub?.club_slug || "";
-
   const seasonOptions = useMemo(
     () => buildSeasonOptions(clubSeason),
     [clubSeason]
   );
 
   useEffect(() => {
-    if (!activeClubSlug) {
-      return;
-    }
+    if (!activeClubSlug) return;
 
     let isMounted = true;
 
@@ -179,20 +131,12 @@ export default function AdminLayout() {
 
       try {
         const data = await getCurrentClubSeason(activeClubSlug);
-
-        if (isMounted) {
-          setClubSeason(data);
-        }
+        if (isMounted) setClubSeason(data);
       } catch (error) {
         console.error("Nepodarilo sa načítať sezónu klubu:", error);
-
-        if (isMounted) {
-          setSeasonStatus("Sezónu sa nepodarilo načítať.");
-        }
+        if (isMounted) setSeasonStatus("Sezónu sa nepodarilo načítať.");
       } finally {
-        if (isMounted) {
-          setIsSeasonLoading(false);
-        }
+        if (isMounted) setIsSeasonLoading(false);
       }
     };
 
@@ -232,9 +176,7 @@ export default function AdminLayout() {
   };
 
   const isActive = (to: string) => {
-    if (to === "/") {
-      return location.pathname === "/";
-    }
+    if (to === "/") return location.pathname === "/";
 
     return (
       location.pathname === to ||
@@ -247,7 +189,7 @@ export default function AdminLayout() {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <div>
+        <div className={styles.sidebarContent}>
           <div className={styles.brand}>
             <div className={styles.brandMark}>
               <img src="/image.png" alt="Ludimus logo" />
@@ -264,7 +206,6 @@ export default function AdminLayout() {
               <div className={styles.userAvatar}>
                 {(user?.username || "guli").slice(0, 1).toUpperCase()}
               </div>
-
               <div className={styles.userInfo}>
                 <div className={styles.userName}>
                   {user?.username || "guli"}
@@ -279,7 +220,6 @@ export default function AdminLayout() {
               <div className={styles.clubAvatar}>
                 {(activeClub?.club_name || "Klub").slice(0, 1).toUpperCase()}
               </div>
-
               <div className={styles.clubInfo}>
                 <div className={styles.clubName}>
                   {activeClub?.club_name || "Aktívny klub"}
@@ -295,7 +235,6 @@ export default function AdminLayout() {
             <div className={styles.seasonSwitcher}>
               <div className={styles.seasonSwitcherTop}>
                 <span className={styles.seasonLabel}>Sezóna</span>
-
                 {isSeasonSaving ? (
                   <span className={styles.seasonSaving}>Ukladám</span>
                 ) : null}
@@ -306,7 +245,6 @@ export default function AdminLayout() {
                 value={clubSeason?.season || ""}
                 onChange={handleSeasonChange}
                 disabled={!activeClubSlug || isSeasonLoading || isSeasonSaving}
-                aria-label="Vybrať aktívnu sezónu"
               >
                 {!clubSeason?.season ? (
                   <option value="">

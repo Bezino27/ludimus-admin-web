@@ -1,5 +1,8 @@
 const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 const rawPublicSiteUrl = import.meta.env.VITE_PUBLIC_SITE_URL;
+const defaultPublicSiteUrl = import.meta.env.PROD
+  ? "https://atukosice.sk"
+  : "http://localhost:3000";
 
 export const API_BASE_URL =
   rawApiBaseUrl === undefined || rawApiBaseUrl === null
@@ -10,7 +13,7 @@ export const ADMIN_API_PREFIX = "/api/admin";
 
 export const PUBLIC_SITE_URL =
   rawPublicSiteUrl === undefined || rawPublicSiteUrl === null
-    ? "http://localhost:3000"
+    ? defaultPublicSiteUrl
     : rawPublicSiteUrl.replace(/\/$/, "");
 
 export function buildApiUrl(path: string) {
@@ -24,6 +27,10 @@ export function buildApiUrl(path: string) {
 }
 
 export function getPublicPageUrl(publicPath: string) {
+  if (/^https?:\/\//i.test(publicPath)) {
+    return publicPath;
+  }
+
   const normalizedPath = publicPath.startsWith("/")
     ? publicPath
     : `/${publicPath}`;
