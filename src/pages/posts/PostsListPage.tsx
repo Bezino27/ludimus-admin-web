@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { deletePost, getPosts } from "../../api/posts";
+import { getPublicPageUrl } from "../../api/config";
 import { useAuth } from "../../context/useAuth";
 import type { AdminPost } from "../../types/post";
 import styles from "./PostsListPage.module.css";
@@ -271,10 +272,9 @@ export default function PostsListPage() {
         <>
           <div className={styles.list}>
             {paginatedPosts.map((post) => {
-              const liveUrl =
-                post.club_slug && post.slug
-                  ? `/${post.club_slug}/posts/${post.slug}`
-                  : "#";
+              const liveUrl = post.slug
+                ? getPublicPageUrl(`/clanky/${post.slug}`)
+                : "#";
 
               return (
                 <article key={post.id} className={styles.card}>

@@ -41,7 +41,7 @@ export default function PostEditPage() {
     try {
       await updatePost(id, {
         club: post.club,
-        category: values.category ?? post.category,
+        category: values.category,
         title: values.title,
         slug: values.slug,
         excerpt: values.excerpt,
@@ -100,8 +100,8 @@ export default function PostEditPage() {
             slug: post.slug,
             excerpt: post.excerpt,
             content: post.content,
-            featured_image: post.featured_image,
-            featured_image_path: post.featured_image,
+            featured_image: post.featured_image_url || post.featured_image,
+            featured_image_path: null,
             status: post.status,
             meta_title: post.meta_title,
             meta_description: post.meta_description,
@@ -112,6 +112,7 @@ export default function PostEditPage() {
           submitLabel="Uložiť zmeny"
           clubId={post.club}
           clubSlug={post.club_slug}
+          initialCategory={post.category_detail ?? null}
         />
       </AdminCard>
     </AdminPage>

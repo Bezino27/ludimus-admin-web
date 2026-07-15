@@ -25,6 +25,7 @@ type AdminRichTextEditorProps = {
   placeholder?: string;
   minHeight?: number;
   onUploadImage?: (file: File) => Promise<string>;
+  imageAltText?: string;
 };
 
 type ToolbarButtonProps = {
@@ -106,6 +107,7 @@ function ToolbarButton({
     <button
       type="button"
       title={title}
+      aria-pressed={active}
       className={`${styles.toolbarButton} ${
         active ? styles.toolbarButtonActive : ""
       } ${danger ? styles.toolbarButtonDanger : ""}`}
@@ -252,6 +254,7 @@ export default function AdminRichTextEditor({
   placeholder = "Začni písať...",
   minHeight = 300,
   onUploadImage,
+  imageAltText = "",
 }: AdminRichTextEditorProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -346,7 +349,7 @@ export default function AdminRichTextEditor({
         if (!files.length || !onUploadImage) return false;
 
         event.preventDefault();
-        void insertImageFile(files[0], view.state.selection.from);
+        void insertImageFiles(files, view.state.selection.from);
         return true;
       },
       handleDrop: (view, event) => {
@@ -367,7 +370,7 @@ export default function AdminRichTextEditor({
           top: event.clientY,
         });
 
-        void insertImageFile(files[0], coordinates?.pos ?? view.state.selection.from);
+        void insertImageFiles(files, coordinates?.pos ?? view.state.selection.from);
         return true;
       },
     },
@@ -390,29 +393,28 @@ export default function AdminRichTextEditor({
     },
   });
 
-  async function insertImageFile(file: File, position?: number) {
+  async function insertImageFiles(files: File[], position?: number) {
     if (!editor || !onUploadImage) return;
 
     try {
       setIsUploading(true);
+      let insertPosition = position;
 
-      const url = await onUploadImage(file);
-      const alt = window.prompt("Alt text obrázka (voliteľné):") || "";
-      const chain = editor.chain().focus();
+      for (const file of files) {
+        const url = await onUploadImage(file);
+        const alt = imageAltText.trim();
+        const imageNode = {
+          type: "image",
+          attrs: { src: url, alt },
+        };
 
-      if (typeof position === "number") {
-        chain.insertContentAt(position, {
-          type: "image",
-          attrs: { src: url, alt, title: alt },
-        });
-      } else {
-        chain.insertContent({
-          type: "image",
-          attrs: { src: url, alt, title: alt },
-        });
+        if (typeof insertPosition === "number") {
+          editor.chain().focus().insertContentAt(insertPosition, imageNode).run();
+          insertPosition += 1;
+        } else {
+          editor.chain().focus().insertContent(imageNode).run();
+        }
       }
-
-      chain.run();
     } catch (error) {
       console.error("Upload obrázka zlyhal", error);
       window.alert("Upload obrázka zlyhal.");
@@ -469,7 +471,7 @@ export default function AdminRichTextEditor({
 
     if (!url?.trim()) return;
 
-    const alt = window.prompt("Alt text obrázka (voliteľné):") || "";
+    const alt = imageAltText.trim();
 
     restoreSelection(from, to);
 
@@ -481,7 +483,6 @@ export default function AdminRichTextEditor({
         attrs: {
           src: url.trim(),
           alt,
-          title: alt,
         },
       })
       .run();
@@ -518,11 +519,13 @@ export default function AdminRichTextEditor({
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []).filter((file) =>
+      file.type.startsWith("image/"),
+    );
     event.target.value = "";
 
-    if (!file) return;
-    await insertImageFile(file);
+    if (!files.length) return;
+    await insertImageFiles(files);
   };
 
   const clearFormatting = () => {
@@ -558,6 +561,7 @@ export default function AdminRichTextEditor({
   const characterCount = editor.storage.characterCount.characters();
   const activeTextColor =
     (editor.getAttributes("textStyle").color as string | undefined) || "";
+  const normalizedActiveTextColor = activeTextColor.toLowerCase();
 
   return (
     <div
@@ -570,6 +574,7 @@ export default function AdminRichTextEditor({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className={styles.hiddenFileInput}
         onChange={(event) => void handleFileChange(event)}
       />
@@ -710,6 +715,7 @@ export default function AdminRichTextEditor({
               <div className={styles.ribbonGroup}>
                 <div className={styles.ribbonGroupContent}>
                   <ToolbarButton
+                    title="Tučné"
                     active={editor.isActive("bold")}
                     disabled={!canRun(editor, (current) =>
                       current.can().chain().focus().toggleBold().run()
@@ -720,6 +726,7 @@ export default function AdminRichTextEditor({
                   </ToolbarButton>
 
                   <ToolbarButton
+                    title="Kurzíva"
                     active={editor.isActive("italic")}
                     disabled={!canRun(editor, (current) =>
                       current.can().chain().focus().toggleItalic().run()
@@ -729,20 +736,26 @@ export default function AdminRichTextEditor({
                     I
                   </ToolbarButton>
 
-                  <select
-                    className={styles.toolbarSelect}
-                    value={activeTextColor}
-                    aria-label="Farba textu"
-                    onMouseDown={rememberColorSelection}
-                    onChange={(event) => setTextColor(event.target.value)}
-                  >
-                    <option value="">Farba textu</option>
+                  <div className={styles.colorSwatches} aria-label="Farba textu">
                     {TEXT_COLORS.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
+                      <button
+                        key={value}
+                        type="button"
+                        className={`${styles.colorSwatch} ${
+                          normalizedActiveTextColor === value ? styles.colorSwatchActive : ""
+                        }`}
+                        style={{ "--swatch-color": value } as CSSProperties}
+                        title={label}
+                        aria-label={`Farba textu: ${label}`}
+                        aria-pressed={normalizedActiveTextColor === value}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          rememberColorSelection();
+                          setTextColor(value);
+                        }}
+                      />
                     ))}
-                  </select>
+                  </div>
 
                   <ToolbarButton onClick={clearFormatting}>Vyčistiť</ToolbarButton>
                 </div>
@@ -849,13 +862,6 @@ export default function AdminRichTextEditor({
                   >
                     Citácia
                   </ToolbarButton>
-
-                  <ToolbarButton
-                    active={editor.isActive("codeBlock")}
-                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                  >
-                    Code blok
-                  </ToolbarButton>
                 </div>
                 <div className={styles.ribbonGroupLabel}>Bloky</div>
               </div>
@@ -935,7 +941,7 @@ export default function AdminRichTextEditor({
 
       {isPreviewMode ? (
         <div
-          className={`${styles.editorBody} ${styles.previewBody}`}
+          className={`${styles.editorBody} ${styles.editorContent} ${styles.previewBody}`}
           dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
         />
       ) : (

@@ -42,6 +42,7 @@ export default function SectionRichTextEditor({
       onChange={onChange}
       placeholder="Napíš obsah sekcie..."
       minHeight={260}
+      imageAltText=""
       onUploadImage={handleUploadImage}
     />
   );

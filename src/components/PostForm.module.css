@@ -244,7 +244,9 @@
   width: 100%;
   max-width: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #050505;
   border-radius: 16px;
   margin-top: 16px;
   max-height: 220px;
@@ -286,6 +288,7 @@
   font-size: 15px;
   line-height: 1.7;
   color: #111827;
+  font-weight: 400;
   word-break: break-word;
   overflow: hidden;
   max-width: 100%;
@@ -296,10 +299,96 @@
   margin-bottom: 12px;
 }
 
+.previewContent :global(h2) {
+  margin: 1.35em 0 0.55em;
+  color: #111827;
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.previewContent :global(h3) {
+  margin: 1.2em 0 0.45em;
+  color: #111827;
+  font-size: 1.28rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.previewContent :global(strong),
+.previewContent :global(b) {
+  font-weight: 850;
+}
+
+.previewContent :global(em),
+.previewContent :global(i) {
+  font-style: italic;
+}
+
+.previewContent :global(a) {
+  color: #84101a;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.previewContent :global(ul),
+.previewContent :global(ol) {
+  margin: 0 0 1em 1.4em;
+  padding: 0;
+}
+
+.previewContent :global(li) {
+  margin: 0.28em 0;
+  padding-left: 0.2em;
+}
+
 .previewContent :global(img) {
-  max-width: 100%;
+  display: block;
+  width: auto;
+  max-width: min(100%, 520px);
+  max-height: 520px;
   height: auto;
   border-radius: 12px;
+  margin: 18px auto;
+  background: #050505;
+  object-fit: contain;
+  object-position: center;
+}
+
+.previewContent :global(pre) {
+  white-space: pre-wrap;
+}
+
+.previewContent :global(code),
+.previewContent :global(pre) {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+}
+
+.previewContent :global(hr) {
+  margin: 28px 0;
+  border: 0;
+  border-top: 1px solid #dbe3eb;
+}
+
+.previewContent :global(table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.previewContent :global(th),
+.previewContent :global(td) {
+  padding: 10px 12px;
+  border: 1px solid #dbe3eb;
+}
+
+.errorHint {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .errorBox {

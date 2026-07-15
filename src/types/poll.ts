@@ -1,6 +1,12 @@
 export type PollOption = {
   id?: number;
+  client_id?: string;
   text: string;
+  video_url?: string;
+  video_file?: string | null;
+  video_file_url?: string | null;
+  video_file_upload?: File | null;
+  remove_video_file?: boolean;
   order: number;
   votes_count?: number;
 };

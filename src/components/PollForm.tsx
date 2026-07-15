@@ -22,6 +22,30 @@ const defaultValues: PollFormValues = {
   ],
 };
 
+const maxVideoFileSize = 100 * 1024 * 1024;
+const allowedVideoExtensions = [".mp4", ".webm", ".mov"];
+const allowedVideoMimeTypes = ["video/mp4", "video/webm", "video/quicktime"];
+
+function createClientId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizeFormValues(values: PollFormValues): PollFormValues {
+  return {
+    ...values,
+    options: values.options.map((option) => ({
+      ...option,
+      client_id: option.client_id ?? createClientId(),
+      video_file_upload: option.video_file_upload ?? null,
+      remove_video_file: option.remove_video_file ?? false,
+    })),
+  };
+}
+
 function toIsoOrNull(value: string) {
   if (!value) return null;
 
@@ -32,8 +56,96 @@ function buildOrderedOptions(options: PollFormValues["options"]) {
   return options.map((option, index) => ({
     ...(option.id ? { id: option.id } : {}),
     text: option.text.trim(),
+    video_url: option.video_url?.trim() || "",
+    video_file_upload: option.video_file_upload ?? null,
+    remove_video_file: option.remove_video_file ?? false,
     order: index,
   }));
+}
+
+function getVideoType(value?: string) {
+  const videoUrl = value?.trim();
+
+  if (!videoUrl) return "";
+
+  try {
+    const url = new URL(videoUrl);
+    const hostname = url.hostname.toLowerCase();
+    const pathname = url.pathname.toLowerCase();
+
+    if (!["http:", "https:"].includes(url.protocol)) return "Nepodporovaná URL";
+    if (
+      (hostname === "youtu.be" && Boolean(url.pathname.split("/").filter(Boolean)[0])) ||
+      ((hostname === "youtube.com" || hostname === "www.youtube.com") &&
+        url.pathname === "/watch" &&
+        Boolean(url.searchParams.get("v")))
+    ) {
+      return "YouTube";
+    }
+
+    if (
+      ((hostname === "vimeo.com" || hostname === "www.vimeo.com") &&
+        /^\d+$/.test(url.pathname.replace(/^\/|\/$/g, ""))) ||
+      (hostname === "player.vimeo.com" &&
+        /^\/video\/\d+\/?$/.test(url.pathname))
+    ) {
+      return "Vimeo";
+    }
+    if (pathname.endsWith(".mp4")) return "MP4";
+  } catch {
+    return "Nepodporovaná URL";
+  }
+
+  return "Nepodporovaná URL";
+}
+
+function getVideoFileError(file: File) {
+  const fileName = file.name.toLowerCase();
+  const hasAllowedExtension = allowedVideoExtensions.some((extension) =>
+    fileName.endsWith(extension)
+  );
+
+  if (!hasAllowedExtension) {
+    return "Video súbor musí byť MP4, WebM alebo MOV.";
+  }
+
+  if (file.type && !allowedVideoMimeTypes.includes(file.type)) {
+    return "Nepodporovaný MIME typ video súboru.";
+  }
+
+  if (file.size > maxVideoFileSize) {
+    return "Video súbor môže mať najviac 100 MB.";
+  }
+
+  return "";
+}
+
+function VideoPreview({ file, url }: { file?: File | null; url?: string | null }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(url ?? null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file, url]);
+
+  if (!previewUrl) return null;
+
+  return (
+    <video
+      className={styles.videoPreview}
+      src={previewUrl}
+      controls
+      playsInline
+      preload="metadata"
+    />
+  );
 }
 
 export default function PollForm({
@@ -42,12 +154,14 @@ export default function PollForm({
   submitLabel,
   clubId,
 }: Props) {
-  const [values, setValues] = useState<PollFormValues>(initialValues);
+  const [values, setValues] = useState<PollFormValues>(() =>
+    normalizeFormValues(initialValues)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setValues(initialValues);
+    setValues(normalizeFormValues(initialValues));
   }, [initialValues]);
 
   const filledOptionsCount = useMemo(
@@ -76,6 +190,58 @@ export default function PollForm({
     }));
   };
 
+  const handleOptionVideoChange = (index: number, value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      options: prev.options.map((option, optionIndex) =>
+        optionIndex === index ? { ...option, video_url: value } : option
+      ),
+    }));
+  };
+
+  const handleOptionVideoFileChange = (index: number, file: File | null) => {
+    if (file) {
+      const fileError = getVideoFileError(file);
+
+      if (fileError) {
+        setError(fileError);
+        return;
+      }
+    }
+
+    setError("");
+
+    setValues((prev) => ({
+      ...prev,
+      options: prev.options.map((option, optionIndex) =>
+        optionIndex === index
+          ? {
+              ...option,
+              video_file_upload: file,
+              remove_video_file: false,
+            }
+          : option
+      ),
+    }));
+  };
+
+  const handleRemoveOptionVideoFile = (index: number) => {
+    setValues((prev) => ({
+      ...prev,
+      options: prev.options.map((option, optionIndex) =>
+        optionIndex === index
+          ? {
+              ...option,
+              video_file: null,
+              video_file_url: null,
+              video_file_upload: null,
+              remove_video_file: Boolean(option.video_file_url || option.video_file),
+            }
+          : option
+      ),
+    }));
+  };
+
   const handleAddOption = () => {
     setValues((prev) => ({
       ...prev,
@@ -83,6 +249,7 @@ export default function PollForm({
         ...prev.options,
         {
           text: "",
+          client_id: createClientId(),
           order: prev.options.length,
         },
       ],
@@ -123,6 +290,25 @@ export default function PollForm({
       if (endsAt <= startsAt) {
         return "Koniec hlasovania musí byť po začiatku.";
       }
+    }
+
+    const unsupportedVideo = values.options.find((option) => {
+      const videoType = getVideoType(option.video_url);
+      return videoType === "Nepodporovaná URL";
+    });
+
+    if (unsupportedVideo) {
+      return "Video URL musí byť YouTube, Vimeo alebo priama MP4 adresa.";
+    }
+
+    const unsupportedVideoFile = values.options.find((option) => {
+      if (!option.video_file_upload) return false;
+
+      return Boolean(getVideoFileError(option.video_file_upload));
+    });
+
+    if (unsupportedVideoFile?.video_file_upload) {
+      return getVideoFileError(unsupportedVideoFile.video_file_upload);
     }
 
     return "";
@@ -206,16 +392,99 @@ export default function PollForm({
           </div>
 
           <div className={styles.optionsList}>
-            {values.options.map((option, index) => (
-              <div key={`${option.id ?? "new"}-${index}`} className={styles.optionRow}>
+            {values.options.map((option, index) => {
+              const hasUploadedVideo = Boolean(
+                option.video_file_upload || option.video_file_url
+              );
+              const hasUrlVideo = Boolean(option.video_url?.trim());
+              const videoFileLabel =
+                option.video_file_upload?.name ||
+                option.video_file?.split("/").pop() ||
+                "Nahraté video";
+
+              return (
+              <div key={option.client_id} className={styles.optionRow}>
                 <div className={styles.optionOrder}>{index + 1}</div>
 
-                <input
-                  className={styles.input}
-                  value={option.text}
-                  onChange={(event) => handleOptionChange(index, event.target.value)}
-                  placeholder={`Možnosť ${index + 1}`}
-                />
+                <div className={styles.optionFields}>
+                  <input
+                    className={styles.input}
+                    value={option.text}
+                    onChange={(event) => handleOptionChange(index, event.target.value)}
+                    placeholder={`Možnosť ${index + 1}`}
+                  />
+
+                  <input
+                    className={styles.input}
+                    value={option.video_url ?? ""}
+                    onChange={(event) =>
+                      handleOptionVideoChange(index, event.target.value)
+                    }
+                    placeholder="Video URL (voliteľné): https://www.youtube.com/watch?v=..."
+                  />
+
+                  {option.video_url?.trim() ? (
+                    <div className={styles.videoHint}>
+                      <span>{getVideoType(option.video_url)}</span>
+                      <a
+                        href={option.video_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Otvoriť video
+                      </a>
+                    </div>
+                  ) : null}
+
+                  <div className={styles.videoUploadBox}>
+                    <label className={styles.fileButton}>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                        onChange={(event) =>
+                          handleOptionVideoFileChange(
+                            index,
+                            event.target.files?.[0] ?? null
+                          )
+                        }
+                      />
+                      Nahrať video súbor
+                    </label>
+
+                    <span className={styles.fileMeta}>
+                      MP4, WebM alebo MOV · max. 100 MB
+                    </span>
+                  </div>
+
+                  {hasUploadedVideo ? (
+                    <div className={styles.videoFilePanel}>
+                      <VideoPreview
+                        file={option.video_file_upload}
+                        url={option.video_file_url}
+                      />
+
+                      <div className={styles.videoFileActions}>
+                        <span className={styles.videoFileName}>
+                          {videoFileLabel}
+                        </span>
+
+                        <button
+                          type="button"
+                          className={styles.textButton}
+                          onClick={() => handleRemoveOptionVideoFile(index)}
+                        >
+                          Odstrániť video súbor
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {hasUploadedVideo && hasUrlVideo ? (
+                    <div className={styles.videoWarning}>
+                      Verejne sa použije nahraté video. URL ostane uložená ako záloha.
+                    </div>
+                  ) : null}
+                </div>
 
                 <button
                   type="button"
@@ -226,7 +495,8 @@ export default function PollForm({
                   Odstrániť
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <button

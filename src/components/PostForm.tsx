@@ -11,6 +11,7 @@ type Props = {
   submitLabel: string;
   clubId: number;
   clubSlug: string;
+  initialCategory?: PostCategory | null;
 };
 
 const defaultValues: PostFormValues = {
@@ -44,10 +45,13 @@ export default function PostForm({
   submitLabel,
   clubId,
   clubSlug,
+  initialCategory = null,
 }: Props) {
   const [values, setValues] = useState<PostFormValues>(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [categoriesError, setCategoriesError] = useState("");
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [categories, setCategories] = useState<PostCategory[]>([]);
   const [slugTouched, setSlugTouched] = useState(false);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
@@ -60,10 +64,15 @@ export default function PostForm({
   useEffect(() => {
     const loadCategories = async () => {
       try {
+        setCategoriesError("");
+        setCategoriesLoaded(false);
         const data = await getPostCategories(clubSlug);
         setCategories(data);
       } catch (e) {
         console.error("Načítanie kategórií zlyhalo", e);
+        setCategoriesError("Kategórie sa nepodarilo načítať.");
+      } finally {
+        setCategoriesLoaded(true);
       }
     };
 
@@ -139,7 +148,7 @@ export default function PostForm({
     setValues((prev) => ({
       ...prev,
       featured_image: null,
-      featured_image_path: null,
+      featured_image_path: "",
     }));
   };
 
@@ -147,6 +156,18 @@ export default function PostForm({
     () => values.title || "Nadpis článku",
     [values.title]
   );
+
+  const effectiveCategories = useMemo(() => {
+    if (
+      initialCategory &&
+      values.category === initialCategory.id &&
+      !categories.some((category) => category.id === initialCategory.id)
+    ) {
+      return [initialCategory, ...categories];
+    }
+
+    return categories;
+  }, [categories, initialCategory, values.category]);
 
   const previewExcerpt = useMemo(
     () => values.excerpt || "Krátky popis článku sa zobrazí tu.",
@@ -243,6 +264,7 @@ export default function PostForm({
               value={values.content}
               onChange={handleContentChange}
               clubId={clubId}
+              imageAltText={values.title}
             />
           </div>
         </section>
@@ -296,12 +318,17 @@ export default function PostForm({
               onChange={handleCategoryChange}
             >
               <option value="">Bez kategórie</option>
-              {categories.map((category) => (
+              {effectiveCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
             </select>
+            {categoriesError ? (
+              <p className={styles.errorHint}>{categoriesError}</p>
+            ) : categoriesLoaded && effectiveCategories.length === 0 ? (
+              <p className={styles.hint}>Tento klub zatiaľ nemá kategórie článkov.</p>
+            ) : null}
           </div>
 
           <label className={styles.checkboxRow}>

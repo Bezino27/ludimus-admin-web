@@ -48,6 +48,11 @@ function pollToFormValues(poll: Poll): PollFormValues {
     options: options.map((option, index) => ({
       id: option.id,
       text: option.text,
+      video_url: option.video_url ?? "",
+      video_file: option.video_file ?? null,
+      video_file_url: option.video_file_url ?? null,
+      video_file_upload: null,
+      remove_video_file: false,
       order: index,
       votes_count: option.votes_count,
     })),
