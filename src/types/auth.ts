@@ -20,3 +20,8 @@ export type LoginResponse = {
   refresh: string;
   access: string;
 };
+
+export type RefreshResponse = {
+    access: string;
+    refresh?: string;
+  };

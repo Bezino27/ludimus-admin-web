@@ -75,11 +75,14 @@ api.interceptors.response.use(
         const response = await api.post("/api/admin/auth/refresh/", {
           refresh: refreshToken,
         });
-
         const newAccessToken = response.data.access;
+        const newRefreshToken = response.data.refresh;
 
         localStorage.setItem("accessToken", newAccessToken);
 
+        if (newRefreshToken) {
+          localStorage.setItem("refreshToken", newRefreshToken);
+        }
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 

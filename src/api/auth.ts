@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { LoginResponse, MeResponse } from "../types/auth";
+import type { LoginResponse, MeResponse, RefreshResponse} from "../types/auth";
 
 export const loginRequest = async (username: string, password: string) => {
   const response = await api.post<LoginResponse>("/api/admin/auth/login/", {
@@ -9,10 +9,16 @@ export const loginRequest = async (username: string, password: string) => {
   return response.data;
 };
 
-export const refreshRequest = async (refresh: string) => {
-  const response = await api.post<{ access: string }>("/api/admin/auth/refresh/", {
-    refresh,
-  });
+
+
+export const refreshRequest = async (
+  refresh: string
+): Promise<RefreshResponse> => {
+  const response = await api.post<RefreshResponse>(
+    "/api/admin/auth/refresh/",
+    { refresh }
+  );
+
   return response.data;
 };
 

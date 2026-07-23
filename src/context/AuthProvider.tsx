@@ -35,7 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const refreshed = await refreshRequest(refreshToken);
+
         localStorage.setItem("accessToken", refreshed.access);
+
+        if (refreshed.refresh) {
+          localStorage.setItem("refreshToken", refreshed.refresh);
+        }
         const me = await meRequest();
         setUser(me);
       } catch {
