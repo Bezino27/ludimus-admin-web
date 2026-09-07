@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  deleteAdminClubPlayer,
   getAdminClubPlayers,
   getAdminSzfbCompetitions,
   updateAdminClubPlayer,
@@ -73,7 +74,7 @@ function getErrorMessage(error: unknown) {
       const firstValue = Object.values(responseData)[0];
 
       if (Array.isArray(firstValue)) {
-        return String(firstValue[0] || "Údaje sa nepodarilo uložiť.");
+        return String(firstValue[0] || "Operáciu sa nepodarilo dokončiť.");
       }
 
       if (typeof firstValue === "string") {
@@ -82,7 +83,7 @@ function getErrorMessage(error: unknown) {
     }
   }
 
-  return "Údaje sa nepodarilo uložiť.";
+  return "Operáciu sa nepodarilo dokončiť.";
 }
 
 export default function PlayersPage() {
@@ -94,22 +95,29 @@ export default function PlayersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
+
   const [selectedWatchId, setSelectedWatchId] = useState("");
   const [selectedSeason, setSelectedSeason] = useState("");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePlayers, setHasMorePlayers] = useState(false);
   const [playersTotalCount, setPlayersTotalCount] = useState(0);
+
   const [playerForm, setPlayerForm] = useState<PlayerFormState | null>(null);
 
   const activeClub =
     user?.memberships?.find((membership) => membership.is_active) ??
     user?.memberships?.[0];
+
   const activeClubSlug = activeClub?.club_slug || "";
 
   const watchOptions = useMemo(() => {
@@ -183,7 +191,9 @@ export default function PlayersPage() {
     }
 
     const data = await getAdminSzfbCompetitions(activeClubSlug);
+
     setCompetitions(data);
+
     return data;
   }, [activeClubSlug]);
 
@@ -217,6 +227,7 @@ export default function PlayersPage() {
       setPlayers((current) =>
         append ? [...current, ...data.results] : data.results
       );
+
       setCurrentPage(page);
       setHasMorePlayers(Boolean(data.next));
       setPlayersTotalCount(data.count);
@@ -260,6 +271,7 @@ export default function PlayersPage() {
             setSelectedWatchId("");
             setErrorMessage("Nepodarilo sa určiť aktívny klub.");
           }
+
           return;
         }
 
@@ -270,6 +282,7 @@ export default function PlayersPage() {
         }
 
         skipNextFilterLoadRef.current = true;
+
         setSelectedWatchId("");
         setSelectedSeason("");
         setSearch("");
@@ -404,7 +417,7 @@ export default function PlayersPage() {
   };
 
   const handlePlayerSave = async () => {
-    if (!playerForm || isSaving) {
+    if (!playerForm || isSaving || isDeleting) {
       return;
     }
 
@@ -439,6 +452,7 @@ export default function PlayersPage() {
           player.id === updatedPlayer.id ? updatedPlayer : player
         )
       );
+
       setPlayerForm(null);
       setMessage("Hráč bol upravený.");
     } catch (error) {
@@ -449,12 +463,57 @@ export default function PlayersPage() {
     }
   };
 
+  const handlePlayerDelete = async () => {
+    if (!playerForm || isDeleting || isSaving) {
+      return;
+    }
+
+    if (!activeClubSlug) {
+      setErrorMessage("Nepodarilo sa určiť aktívny klub.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Naozaj chcete vymazať hráča ${playerForm.fullName}? Táto akcia je nevratná.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const playerId = playerForm.playerId;
+
+    setIsDeleting(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      await deleteAdminClubPlayer(playerId, activeClubSlug);
+
+      setPlayers((current) =>
+        current.filter((player) => player.id !== playerId)
+      );
+
+      setPlayersTotalCount((current) => Math.max(0, current - 1));
+
+      setPlayerForm(null);
+      setMessage("Hráč bol vymazaný.");
+    } catch (error) {
+      console.error("Nepodarilo sa vymazať hráča:", error);
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Hráči</p>
+
           <h1>Správa hráčov</h1>
+
           <p className={styles.subtitle}>
             Upravuj klubové profily hráčov, fotky, čísla, výšku, váhu a bio.
             Štatistiky ostávajú napojené zo SZFB.
@@ -465,7 +524,7 @@ export default function PlayersPage() {
           <button
             type="button"
             className={styles.secondaryButton}
-          onClick={() => void loadPlayers()}
+            onClick={() => void loadPlayers()}
             disabled={isLoading || isLoadingMore}
           >
             Obnoviť
@@ -474,6 +533,7 @@ export default function PlayersPage() {
       </header>
 
       {message ? <div className={styles.messageBox}>{message}</div> : null}
+
       {errorMessage ? (
         <div className={styles.errorBox}>{errorMessage}</div>
       ) : null}
@@ -483,6 +543,7 @@ export default function PlayersPage() {
           <span>Hráči spolu</span>
           <strong>{stats.total}</strong>
         </div>
+
         <div className={styles.statCard}>
           <span>S fotkou</span>
           <strong>{stats.withPhoto}</strong>
@@ -493,6 +554,7 @@ export default function PlayersPage() {
         <div className={styles.filtersGrid}>
           <label className={styles.field}>
             <span>Vyhľadávanie</span>
+
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -502,11 +564,13 @@ export default function PlayersPage() {
 
           <label className={styles.field}>
             <span>Kategória / TeamWatch</span>
+
             <select
               value={selectedWatchId}
               onChange={(event) => setSelectedWatchId(event.target.value)}
             >
               <option value="">Všetky kategórie</option>
+
               {watchOptions.map((watch) => (
                 <option key={watch.id} value={watch.id}>
                   {watch.label} · {watch.season}
@@ -517,11 +581,13 @@ export default function PlayersPage() {
 
           <label className={styles.field}>
             <span>Sezóna</span>
+
             <select
               value={selectedSeason}
               onChange={(event) => setSelectedSeason(event.target.value)}
             >
               <option value="">Všetky sezóny</option>
+
               {seasonOptions.map((season) => (
                 <option key={season} value={season}>
                   {season}
@@ -532,6 +598,7 @@ export default function PlayersPage() {
 
           <label className={styles.field}>
             <span>Stav</span>
+
             <select
               value={activeFilter}
               onChange={(event) =>
@@ -572,34 +639,48 @@ export default function PlayersPage() {
                   <th>Úprava</th>
                 </tr>
               </thead>
+
               <tbody>
                 {players.map((player) => (
                   <tr key={player.id}>
                     <td>
                       <div className={styles.playerCell}>
                         <div className={styles.avatar}>
-                          <span>{player.full_name.slice(0, 1).toUpperCase()}</span>
+                          <span>
+                            {player.full_name.slice(0, 1).toUpperCase()}
+                          </span>
                         </div>
+
                         <div>
                           <strong>{player.full_name}</strong>
+
                           <small>
-                            ID {player.id} · Foto: {player.photo_url ? "áno" : "nie"}
+                            ID {player.id} · Foto:{" "}
+                            {player.photo_url ? "áno" : "nie"}
                           </small>
                         </div>
                       </div>
                     </td>
+
                     <td>{player.birth_year || "—"}</td>
+
                     <td>{player.jersey_number || "—"}</td>
+
                     <td>{player.position || "—"}</td>
+
                     <td>
                       {formatNumber(player.height_cm, " cm")} /{" "}
                       {formatNumber(player.weight_kg, " kg")}
                     </td>
+
                     <td>
                       <div className={styles.categoryList}>
                         {player.categories.length > 0 ? (
                           player.categories.map((category) => (
-                            <span key={category.watch_id} className={styles.badge}>
+                            <span
+                              key={category.watch_id}
+                              className={styles.badge}
+                            >
                               {category.label}
                             </span>
                           ))
@@ -608,6 +689,7 @@ export default function PlayersPage() {
                         )}
                       </div>
                     </td>
+
                     <td>
                       <span
                         className={
@@ -619,6 +701,7 @@ export default function PlayersPage() {
                         {player.is_active ? "Aktívny" : "Neaktívny"}
                       </span>
                     </td>
+
                     <td>
                       <button
                         type="button"
@@ -668,6 +751,7 @@ export default function PlayersPage() {
                 type="button"
                 className={styles.modalCloseButton}
                 onClick={() => setPlayerForm(null)}
+                disabled={isSaving || isDeleting}
               >
                 ×
               </button>
@@ -676,11 +760,17 @@ export default function PlayersPage() {
             <div className={styles.formGrid}>
               <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Meno hráča</span>
+
                 <input
                   value={playerForm.fullName}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, fullName: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            fullName: event.target.value,
+                          }
+                        : current
                     )
                   }
                   required
@@ -689,11 +779,17 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Rok narodenia</span>
+
                 <input
                   value={playerForm.birthYear}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, birthYear: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            birthYear: event.target.value,
+                          }
+                        : current
                     )
                   }
                   type="number"
@@ -703,12 +799,16 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Číslo dresu</span>
+
                 <input
                   value={playerForm.jerseyNumber}
                   onChange={(event) =>
                     setPlayerForm((current) =>
                       current
-                        ? { ...current, jerseyNumber: event.target.value }
+                        ? {
+                            ...current,
+                            jerseyNumber: event.target.value,
+                          }
                         : current
                     )
                   }
@@ -719,11 +819,17 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Pozícia</span>
+
                 <input
                   value={playerForm.position}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, position: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            position: event.target.value,
+                          }
+                        : current
                     )
                   }
                 />
@@ -731,12 +837,16 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Poradie</span>
+
                 <input
                   value={playerForm.displayOrder}
                   onChange={(event) =>
                     setPlayerForm((current) =>
                       current
-                        ? { ...current, displayOrder: event.target.value }
+                        ? {
+                            ...current,
+                            displayOrder: event.target.value,
+                          }
                         : current
                     )
                   }
@@ -747,11 +857,17 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Výška (cm)</span>
+
                 <input
                   value={playerForm.heightCm}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, heightCm: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            heightCm: event.target.value,
+                          }
+                        : current
                     )
                   }
                   type="number"
@@ -761,11 +877,17 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Váha (kg)</span>
+
                 <input
                   value={playerForm.weightKg}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, weightKg: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            weightKg: event.target.value,
+                          }
+                        : current
                     )
                   }
                   type="number"
@@ -775,11 +897,17 @@ export default function PlayersPage() {
 
               <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Bio</span>
+
                 <textarea
                   value={playerForm.bio}
                   onChange={(event) =>
                     setPlayerForm((current) =>
-                      current ? { ...current, bio: event.target.value } : current
+                      current
+                        ? {
+                            ...current,
+                            bio: event.target.value,
+                          }
+                        : current
                     )
                   }
                 />
@@ -787,6 +915,7 @@ export default function PlayersPage() {
 
               <label className={styles.field}>
                 <span>Fotka</span>
+
                 <input
                   type="file"
                   accept="image/*"
@@ -806,6 +935,7 @@ export default function PlayersPage() {
               {playerForm.photoUrl ? (
                 <div className={`${styles.field} ${styles.fieldFull}`}>
                   <span>Aktuálna fotka</span>
+
                   <img
                     className={styles.previewImage}
                     src={playerForm.photoUrl}
@@ -822,11 +952,15 @@ export default function PlayersPage() {
                   onChange={(event) =>
                     setPlayerForm((current) =>
                       current
-                        ? { ...current, isActive: event.target.checked }
+                        ? {
+                            ...current,
+                            isActive: event.target.checked,
+                          }
                         : current
                     )
                   }
                 />
+
                 Aktívny hráč
               </label>
 
@@ -837,11 +971,15 @@ export default function PlayersPage() {
                   onChange={(event) =>
                     setPlayerForm((current) =>
                       current
-                        ? { ...current, isFeatured: event.target.checked }
+                        ? {
+                            ...current,
+                            isFeatured: event.target.checked,
+                          }
                         : current
                     )
                   }
                 />
+
                 Zvýraznený hráč
               </label>
 
@@ -852,11 +990,15 @@ export default function PlayersPage() {
                   onChange={(event) =>
                     setPlayerForm((current) =>
                       current
-                        ? { ...current, clearPhoto: event.target.checked }
+                        ? {
+                            ...current,
+                            clearPhoto: event.target.checked,
+                          }
                         : current
                     )
                   }
                 />
+
                 Zmazať aktuálnu fotku
               </label>
             </div>
@@ -865,7 +1007,17 @@ export default function PlayersPage() {
               <button
                 type="button"
                 className={styles.secondaryButton}
+                onClick={() => void handlePlayerDelete()}
+                disabled={isSaving || isDeleting}
+              >
+                {isDeleting ? "Mažem..." : "Vymazať hráča"}
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
                 onClick={() => setPlayerForm(null)}
+                disabled={isSaving || isDeleting}
               >
                 Zrušiť
               </button>
@@ -873,7 +1025,7 @@ export default function PlayersPage() {
               <button
                 type="submit"
                 className={styles.primaryButton}
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
               >
                 {isSaving ? "Ukladám..." : "Uložiť hráča"}
               </button>

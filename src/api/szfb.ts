@@ -486,3 +486,14 @@ export async function updateAdminClubPlayer(
 
   return response.data;
 }
+export async function deleteAdminClubPlayer(
+  playerId: number,
+  clubSlug?: string
+) {
+  await api.delete(
+    `${ADMIN_API_PREFIX}/szfb/club-players/${playerId}/`,
+    {
+      params: clubSlug ? { club: clubSlug } : undefined,
+    }
+  );
+}
