@@ -219,6 +219,115 @@
   gap: 8px;
 }
 
+.watchAutoSync {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.watchAutoSyncHeader,
+.watchAutoSyncForm,
+.watchAutoSyncMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.watchAutoSyncHeader {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.watchAutoSyncForm select,
+.watchAutoSyncForm input[type="time"] {
+  width: 144px;
+  min-width: 144px;
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #111827;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.watchAutoSyncForm input[type="time"] {
+  padding: 0 10px 0 12px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.watchAutoSyncForm input[type="time"]::-webkit-datetime-edit {
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.watchAutoSyncForm input[type="time"]::-webkit-datetime-edit-hour-field,
+.watchAutoSyncForm input[type="time"]::-webkit-datetime-edit-minute-field {
+  padding: 3px 2px;
+  border-radius: 4px;
+}
+
+.watchAutoSyncForm input[type="time"]::-webkit-datetime-edit-text {
+  padding: 0 1px;
+  color: #6b7280;
+}
+
+.watchAutoSyncForm input[type="time"]::-webkit-calendar-picker-indicator {
+  width: 17px;
+  height: 17px;
+  margin: 0 0 0 auto;
+  padding: 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.65;
+  transition:
+    opacity 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.watchAutoSyncForm input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #f3f4f6;
+  opacity: 1;
+}
+
+.watchAutoSyncForm select:focus,
+.watchAutoSyncForm input[type="time"]:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.watchAutoSyncForm select:disabled,
+.watchAutoSyncForm input[type="time"]:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.watchAutoSyncMeta {
+  margin-top: 10px;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+.inactiveHint {
+  margin: 0 0 10px;
+  color: #6b7280;
+  font-size: 0.86rem;
+}
+
 /* # STATUS */
 .statusBadge {
   display: inline-flex;
@@ -250,6 +359,34 @@
 }
 
 .status_idle {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.teamMiniCard .statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.teamMiniCard .status_success {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.teamMiniCard .status_error {
+  background: #fffafa;
+  color: #b91c1c;
+}
+
+.teamMiniCard .status_idle {
   background: #f3f4f6;
   color: #374151;
 }

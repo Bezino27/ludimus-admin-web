@@ -2,18 +2,21 @@ import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAdminSzfbWatchSettings,
-  getAdminSzfbAutoSyncConfig,
+  deleteAdminSzfbWatch,
   getAdminSzfbCompetitions,
   getAdminSzfbCompetitionStandings,
   getAdminSzfbWatchMatches,
+  getAdminSzfbWatchGoalies,
   getAdminSzfbWatchPlayers,
+  getAdminSzfbWatchAutoSyncConfig,
   startAdminSzfbCompetitionSync,
-  updateAdminSzfbAutoSyncConfig,
+  updateAdminSzfbWatchAutoSyncConfig,
   updateAdminSzfbPlayerStat,
   updateAdminSzfbWatchSettings,
-  type AdminSzfbAutoSyncConfig,
+  type AdminSzfbWatchAutoSyncConfig,
   type AdminSzfbCompetition,
   type AdminSzfbMatch,
+  type AdminSzfbGoalieStat,
   type AdminSzfbPlayerStat,
   type AdminSzfbStandingRow,
   type AdminSzfbTeamWatch,
@@ -109,7 +112,7 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value));
 }
 
-function getAutoSyncStatusLabel(status: AdminSzfbAutoSyncConfig["last_status"]) {
+function getAutoSyncStatusLabel(status: AdminSzfbWatchAutoSyncConfig["last_status"]) {
   if (status === "success") return "Hotovo";
   if (status === "error") return "Chyba";
   if (status === "skipped") return "Preskočené";
@@ -131,6 +134,12 @@ function formatMatchDateTime(match: AdminSzfbMatch) {
   const time = match.match_time ? match.match_time.slice(0, 5) : "";
 
   return `${date}${time ? ` ${time}` : ""}`;
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function getStatusLabel(status: SzfbSyncStatus) {
@@ -164,15 +173,14 @@ function toOptionalNumber(value: string) {
 export default function SportsDataPage() {
   const { user } = useAuth();
   const [competitions, setCompetitions] = useState<AdminSzfbCompetition[]>([]);
-  const [autoSyncConfig, setAutoSyncConfig] =
-    useState<AdminSzfbAutoSyncConfig | null>(null);
-  const [autoSyncForm, setAutoSyncForm] = useState<AutoSyncFormState>({
-    isEnabled: false,
-    weekday: "0",
-    runTime: "06:00",
-  });
-  const [isAutoSyncLoading, setIsAutoSyncLoading] = useState(false);
-  const [isAutoSyncSaving, setIsAutoSyncSaving] = useState(false);
+  const [autoSyncByWatch, setAutoSyncByWatch] = useState<
+    Record<number, AdminSzfbWatchAutoSyncConfig>
+  >({});
+  const [autoSyncFormsByWatch, setAutoSyncFormsByWatch] = useState<
+    Record<number, AutoSyncFormState>
+  >({});
+  const [autoSyncBusyWatchId, setAutoSyncBusyWatchId] = useState<number | null>(null);
+  const [deletingWatchId, setDeletingWatchId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("");
@@ -189,7 +197,13 @@ export default function SportsDataPage() {
   const [playersByWatch, setPlayersByWatch] = useState<
     Record<number, AdminSzfbPlayerStat[]>
   >({});
+  const [goaliesByWatch, setGoaliesByWatch] = useState<
+    Record<number, AdminSzfbGoalieStat[]>
+  >({});
   const [playerPagesByWatch, setPlayerPagesByWatch] = useState<
+    Record<number, PlayerStatsPageState>
+  >({});
+  const [goaliePagesByWatch, setGoaliePagesByWatch] = useState<
     Record<number, PlayerStatsPageState>
   >({});
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>(
@@ -232,6 +246,41 @@ export default function SportsDataPage() {
     );
   }, [competitions, seasonFilter]);
 
+  const applyWatchAutoSyncConfig = useCallback(
+    (config: AdminSzfbWatchAutoSyncConfig) => {
+      setAutoSyncByWatch((current) => ({ ...current, [config.watch_id]: config }));
+      setAutoSyncFormsByWatch((current) => ({
+        ...current,
+        [config.watch_id]: {
+          isEnabled: config.is_enabled,
+          weekday: String(config.weekday),
+          runTime: config.run_time?.slice(0, 5) || "06:00",
+        },
+      }));
+    },
+    []
+  );
+
+  const loadWatchAutoSyncConfigs = useCallback(
+    async (items: AdminSzfbCompetition[]) => {
+      if (!activeClubSlug) return;
+      const watches = items.flatMap((competition) => competition.watched_teams);
+      const results = await Promise.allSettled(
+        watches.map((watch) =>
+          getAdminSzfbWatchAutoSyncConfig(watch.id, activeClubSlug)
+        )
+      );
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          applyWatchAutoSyncConfig(result.value);
+        } else {
+          console.error("Nepodarilo sa načítať automatiku watchu:", result.reason);
+        }
+      });
+    },
+    [activeClubSlug, applyWatchAutoSyncConfig]
+  );
+
   const loadCompetitions = useCallback(async () => {
     if (!activeClubSlug) {
       setActionMessage("Nepodarilo sa určiť aktívny klub.");
@@ -241,35 +290,8 @@ export default function SportsDataPage() {
 
     const data = await getAdminSzfbCompetitions(activeClubSlug);
     setCompetitions(data);
-  }, [activeClubSlug]);
-
-  const applyAutoSyncConfig = (config: AdminSzfbAutoSyncConfig) => {
-    setAutoSyncConfig(config);
-    setAutoSyncForm({
-      isEnabled: config.is_enabled,
-      weekday: String(config.weekday),
-      runTime: config.run_time?.slice(0, 5) || "06:00",
-    });
-  };
-
-  const loadAutoSyncConfig = useCallback(async () => {
-    if (!activeClubSlug) {
-      setAutoSyncConfig(null);
-      return;
-    }
-
-    setIsAutoSyncLoading(true);
-
-    try {
-      const config = await getAdminSzfbAutoSyncConfig(activeClubSlug);
-      applyAutoSyncConfig(config);
-    } catch (error) {
-      console.error("Nepodarilo sa načítať SZFB automatiku:", error);
-      setActionMessage("Nastavenie automatickej synchronizácie sa nepodarilo načítať.");
-    } finally {
-      setIsAutoSyncLoading(false);
-    }
-  }, [activeClubSlug]);
+    await loadWatchAutoSyncConfigs(data);
+  }, [activeClubSlug, loadWatchAutoSyncConfigs]);
 
   const setPanelLoading = (key: string, isLoadingPanel: boolean) => {
     setDetailLoading((current) => ({
@@ -309,7 +331,23 @@ export default function SportsDataPage() {
         return next;
       });
 
+      setGoaliesByWatch((current) => {
+        const next = { ...current };
+        competition.watched_teams.forEach((team) => {
+          delete next[team.id];
+        });
+        return next;
+      });
+
       setPlayerPagesByWatch((current) => {
+        const next = { ...current };
+        competition.watched_teams.forEach((team) => {
+          delete next[team.id];
+        });
+        return next;
+      });
+
+      setGoaliePagesByWatch((current) => {
         const next = { ...current };
         competition.watched_teams.forEach((team) => {
           delete next[team.id];
@@ -394,7 +432,7 @@ export default function SportsDataPage() {
     async (competition: AdminSzfbCompetition) => {
       const key = getPanelKey(competition.id, "players");
       const missingTeams = competition.watched_teams.filter(
-        (team) => !playersByWatch[team.id]
+        (team) => !playersByWatch[team.id] || !goaliesByWatch[team.id]
       );
 
       if (missingTeams.length === 0) return;
@@ -405,31 +443,60 @@ export default function SportsDataPage() {
       try {
         const entries = await Promise.all(
           missingTeams.map(async (team) => {
-            const data = await getAdminSzfbWatchPlayers(
-              team.id,
-              activeClubSlug,
-              1,
-              PLAYER_STATS_PAGE_SIZE
-            );
-            return [team.id, data] as const;
+            const [players, goalies] = await Promise.all([
+              getAdminSzfbWatchPlayers(
+                team.id,
+                activeClubSlug,
+                1,
+                PLAYER_STATS_PAGE_SIZE
+              ),
+              getAdminSzfbWatchGoalies(
+                team.id,
+                activeClubSlug,
+                1,
+                PLAYER_STATS_PAGE_SIZE
+              ),
+            ]);
+            return [team.id, players, goalies] as const;
           })
         );
 
         setPlayersByWatch((current) => {
           const next = { ...current };
-          entries.forEach(([teamId, data]) => {
-            next[teamId] = data.results;
+          entries.forEach(([teamId, players]) => {
+            next[teamId] = players.results;
+          });
+          return next;
+        });
+
+        setGoaliesByWatch((current) => {
+          const next = { ...current };
+          entries.forEach(([teamId, , goalies]) => {
+            next[teamId] = goalies.results;
           });
           return next;
         });
 
         setPlayerPagesByWatch((current) => {
           const next = { ...current };
-          entries.forEach(([teamId, data]) => {
+          entries.forEach(([teamId, players]) => {
             next[teamId] = {
-              count: data.count,
-              next: data.next,
-              previous: data.previous,
+              count: players.count,
+              next: players.next,
+              previous: players.previous,
+              page: 1,
+            };
+          });
+          return next;
+        });
+
+        setGoaliePagesByWatch((current) => {
+          const next = { ...current };
+          entries.forEach(([teamId, , goalies]) => {
+            next[teamId] = {
+              count: goalies.count,
+              next: goalies.next,
+              previous: goalies.previous,
               page: 1,
             };
           });
@@ -442,7 +509,7 @@ export default function SportsDataPage() {
         setPanelLoading(key, false);
       }
     },
-    [activeClubSlug, playersByWatch]
+    [activeClubSlug, goaliesByWatch, playersByWatch]
   );
 
   const loadMorePlayerStats = async (team: AdminSzfbTeamWatch) => {
@@ -487,6 +554,46 @@ export default function SportsDataPage() {
     }
   };
 
+  const loadMoreGoalieStats = async (team: AdminSzfbTeamWatch) => {
+    const pageState = goaliePagesByWatch[team.id];
+
+    if (!pageState?.next || detailLoading[`goalies:${team.id}:more`]) {
+      return;
+    }
+
+    const loadingKey = `goalies:${team.id}:more`;
+    setPanelLoading(loadingKey, true);
+    setPanelError(loadingKey, "");
+
+    try {
+      const nextPage = pageState.page + 1;
+      const data = await getAdminSzfbWatchGoalies(
+        team.id,
+        activeClubSlug,
+        nextPage,
+        PLAYER_STATS_PAGE_SIZE
+      );
+      setGoaliesByWatch((current) => ({
+        ...current,
+        [team.id]: [...(current[team.id] || []), ...data.results],
+      }));
+      setGoaliePagesByWatch((current) => ({
+        ...current,
+        [team.id]: {
+          count: data.count,
+          next: data.next,
+          previous: data.previous,
+          page: nextPage,
+        },
+      }));
+    } catch (error) {
+      console.error("Nepodarilo sa načítať ďalších brankárov SZFB:", error);
+      setPanelError(loadingKey, "Ďalších brankárov sa nepodarilo načítať.");
+    } finally {
+      setPanelLoading(loadingKey, false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -500,14 +607,11 @@ export default function SportsDataPage() {
           return;
         }
 
-        const [data, syncConfig] = await Promise.all([
-          getAdminSzfbCompetitions(activeClubSlug),
-          getAdminSzfbAutoSyncConfig(activeClubSlug),
-        ]);
+        const data = await getAdminSzfbCompetitions(activeClubSlug);
 
         if (isMounted) {
           setCompetitions(data);
-          applyAutoSyncConfig(syncConfig);
+          await loadWatchAutoSyncConfigs(data);
         }
       } catch (error) {
         console.error("Nepodarilo sa načítať SZFB dáta:", error);
@@ -527,7 +631,7 @@ export default function SportsDataPage() {
     return () => {
       isMounted = false;
     };
-  }, [activeClubSlug]);
+  }, [activeClubSlug, loadWatchAutoSyncConfigs]);
 
   useEffect(() => {
     if (!hasRunningSync) return;
@@ -541,30 +645,49 @@ export default function SportsDataPage() {
     };
   }, [hasRunningSync, loadCompetitions]);
 
-  const handleAutoSyncSave = async () => {
-    if (!activeClubSlug || isAutoSyncSaving) {
+  const handleAutoSyncSave = async (watchId: number) => {
+    const form = autoSyncFormsByWatch[watchId];
+    if (!activeClubSlug || autoSyncBusyWatchId || !form) {
       return;
     }
 
-    setIsAutoSyncSaving(true);
+    setAutoSyncBusyWatchId(watchId);
     setActionMessage("");
 
     try {
-      const config = await updateAdminSzfbAutoSyncConfig({
+      const config = await updateAdminSzfbWatchAutoSyncConfig(watchId, {
         club_slug: activeClubSlug,
-        is_enabled: autoSyncForm.isEnabled,
+        is_enabled: form.isEnabled,
         frequency: "weekly",
-        weekday: Number(autoSyncForm.weekday),
-        run_time: autoSyncForm.runTime,
+        weekday: Number(form.weekday),
+        run_time: form.runTime,
       });
 
-      applyAutoSyncConfig(config);
+      applyWatchAutoSyncConfig(config);
       setActionMessage("Automatická synchronizácia bola uložená.");
     } catch (error) {
       console.error("Nepodarilo sa uložiť SZFB automatiku:", error);
       setActionMessage("Automatickú synchronizáciu sa nepodarilo uložiť.");
     } finally {
-      setIsAutoSyncSaving(false);
+      setAutoSyncBusyWatchId(null);
+    }
+  };
+
+  const handleDeleteWatch = async (watch: AdminSzfbTeamWatch) => {
+    if (!activeClubSlug || deletingWatchId) return;
+    if (!window.confirm(`Naozaj chcete odstrániť sledovanie „${watch.label}“?`)) return;
+
+    setDeletingWatchId(watch.id);
+    setActionMessage("");
+    try {
+      await deleteAdminSzfbWatch(watch.id, activeClubSlug);
+      setActionMessage("Sledovanie tímu bolo odstránené.");
+      await loadCompetitions();
+    } catch (error) {
+      console.error("Nepodarilo sa odstrániť SZFB sledovanie:", error);
+      setActionMessage("Sledovanie tímu sa nepodarilo odstrániť.");
+    } finally {
+      setDeletingWatchId(null);
     }
   };
 
@@ -925,7 +1048,7 @@ export default function SportsDataPage() {
       <div key={team.id} className={styles.teamStatsBlock}>
         <div className={styles.panelSubheader}>
           <div>
-            <h4>{team.label}</h4>
+            <h4>{team.label} – Hráči</h4>
             <p>{team.team_name}</p>
           </div>
 
@@ -1013,6 +1136,96 @@ export default function SportsDataPage() {
     );
   };
 
+  const renderGoalieStats = (
+    team: AdminSzfbTeamWatch,
+    goalies: AdminSzfbGoalieStat[] | undefined,
+    pageState: PlayerStatsPageState | undefined
+  ) => {
+    if (!goalies) {
+      return (
+        <div key={`goalies-${team.id}`} className={styles.emptyPanel}>
+          Načítavam brankárov pre {team.label}...
+        </div>
+      );
+    }
+
+    if (goalies.length === 0) {
+      return (
+        <div key={`goalies-${team.id}`} className={styles.emptyPanel}>
+          {team.label} zatiaľ nemá uložené brankárske štatistiky.
+        </div>
+      );
+    }
+
+    return (
+      <div key={`goalies-${team.id}`} className={styles.teamStatsBlock}>
+        <div className={styles.panelSubheader}>
+          <div>
+            <h4>{team.label} – Brankári</h4>
+            <p>{team.team_name}</p>
+          </div>
+          <span>
+            {goalies.length} / {pageState?.count ?? team.goalie_stats_count} brankárov
+          </span>
+        </div>
+
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>#</th><th>Brankár</th><th>Rok</th><th>Z</th><th>V</th>
+                <th>Vp</th><th>P</th><th>Pp</th><th>SOGA</th><th>GA</th>
+                <th>GAA</th><th>SVS</th><th>SVS %</th><th>MIN</th><th>SO</th>
+              </tr>
+            </thead>
+            <tbody>
+              {goalies.map((goalie) => (
+                <tr key={goalie.id}>
+                  <td>{goalie.jersey_number ?? "—"}</td>
+                  <td>{goalie.player_name}</td>
+                  <td>{goalie.birth_year ?? "—"}</td>
+                  <td>{goalie.games}</td>
+                  <td>{goalie.wins}</td>
+                  <td>{goalie.overtime_wins}</td>
+                  <td>{goalie.losses}</td>
+                  <td>{goalie.overtime_losses}</td>
+                  <td>{goalie.shots_against}</td>
+                  <td>{goalie.goals_against}</td>
+                  <td>{goalie.goals_against_average}</td>
+                  <td>{goalie.saves}</td>
+                  <td>{goalie.save_percentage} %</td>
+                  <td>{formatDuration(goalie.minutes_played_seconds)}</td>
+                  <td>{goalie.shutouts}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {detailErrors[`goalies:${team.id}:more`] ? (
+          <div className={styles.errorBox}>
+            {detailErrors[`goalies:${team.id}:more`]}
+          </div>
+        ) : null}
+
+        {pageState?.next ? (
+          <div className={styles.panelFooter}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => void loadMoreGoalieStats(team)}
+              disabled={detailLoading[`goalies:${team.id}:more`]}
+            >
+              {detailLoading[`goalies:${team.id}:more`]
+                ? "Načítavam..."
+                : "Načítať ďalších brankárov"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -1046,7 +1259,6 @@ export default function SportsDataPage() {
             className={styles.secondaryButton}
             onClick={() => {
               void loadCompetitions();
-              void loadAutoSyncConfig();
             }}
           >
             Obnoviť
@@ -1061,117 +1273,6 @@ export default function SportsDataPage() {
           </button>
         </div>
       </header>
-
-      <section className={styles.autoSyncCard}>
-        <div className={styles.autoSyncTop}>
-          <div>
-            <p className={styles.eyebrow}>Automatika</p>
-            <h2>Automatická SZFB synchronizácia</h2>
-            <p>
-              Backend raz za čas skontroluje nastavenie a pri týždennom termíne
-              zosynchronizuje všetky aktívne SZFB súťaže aktuálneho klubu.
-            </p>
-          </div>
-
-          <span
-            className={`${styles.statusBadge} ${
-              autoSyncConfig?.last_status === "error"
-                ? styles.status_error
-                : autoSyncConfig?.last_status === "success"
-                  ? styles.status_success
-                  : styles.status_idle
-            }`}
-          >
-            {autoSyncConfig
-              ? getAutoSyncStatusLabel(autoSyncConfig.last_status)
-              : "Načítavam"}
-          </span>
-        </div>
-
-        <div className={styles.autoSyncForm}>
-          <label className={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              checked={autoSyncForm.isEnabled}
-              onChange={(event) =>
-                setAutoSyncForm((current) => ({
-                  ...current,
-                  isEnabled: event.target.checked,
-                }))
-              }
-              disabled={isAutoSyncLoading}
-            />
-            Automatiku zapnúť
-          </label>
-
-
-          <label className={styles.field}>
-            <span>Deň</span>
-            <select
-              className={styles.select}
-              value={autoSyncForm.weekday}
-              onChange={(event) =>
-                setAutoSyncForm((current) => ({
-                  ...current,
-                  weekday: event.target.value,
-                }))
-              }
-              disabled={isAutoSyncLoading}
-            >
-              {WEEKDAY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className={styles.field}>
-            <span>Čas</span>
-            <input
-              type="time"
-              value={autoSyncForm.runTime}
-              onChange={(event) =>
-                setAutoSyncForm((current) => ({
-                  ...current,
-                  runTime: event.target.value,
-                }))
-              }
-              disabled={isAutoSyncLoading}
-            />
-          </label>
-
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={() => void handleAutoSyncSave()}
-            disabled={isAutoSyncSaving || isAutoSyncLoading || !activeClubSlug}
-          >
-            {isAutoSyncSaving ? "Ukladám..." : "Uložiť automatiku"}
-          </button>
-        </div>
-
-        <div className={styles.autoSyncMeta}>
-          <div>
-            <span>Posledný automatický sync</span>
-            <strong>{formatDateTime(autoSyncConfig?.last_run_at || null)}</strong>
-          </div>
-          <div>
-            <span>Najbližší sync</span>
-            <strong>
-              {formatDateTime(
-                autoSyncConfig?.next_run_at_preview ||
-                  autoSyncConfig?.next_run_at ||
-                  null
-              )}
-            </strong>
-          </div>
-          <div>
-            <span>Posledná správa</span>
-            <strong>{autoSyncConfig?.last_message || "—"}</strong>
-          </div>
-        </div>
-      </section>
 
       {actionMessage ? (
         <div className={styles.messageBox}>{actionMessage}</div>
@@ -1249,7 +1350,11 @@ export default function SportsDataPage() {
               </div>
 
               <div className={styles.teamsList}>
-                {competition.watched_teams.map((team) => (
+                {competition.watched_teams.map((team) => {
+                  const autoSyncConfig = autoSyncByWatch[team.id];
+                  const autoSyncForm = autoSyncFormsByWatch[team.id];
+                  const isAutoSyncBusy = autoSyncBusyWatchId === team.id;
+                  return (
                   <div key={team.id} className={styles.teamMiniCard}>
                     <div>
                       <strong>{team.label}</strong>
@@ -1270,9 +1375,119 @@ export default function SportsDataPage() {
                       >
                         Upraviť SZFB
                       </button>
+                      <button
+                        type="button"
+                        className={styles.smallLinkButton}
+                        onClick={() => void handleDeleteWatch(team)}
+                        disabled={deletingWatchId === team.id}
+                      >
+                        {deletingWatchId === team.id
+                          ? "Odstraňujem..."
+                          : "Odstrániť sledovanie"}
+                      </button>
+                    </div>
+
+                    <div className={styles.watchAutoSync}>
+                      <div className={styles.watchAutoSyncHeader}>
+                        <strong>Automatická synchronizácia</strong>
+                        <span className={`${styles.statusBadge} ${
+                          !team.is_active
+                            ? styles.status_idle
+                            : autoSyncConfig?.last_status === "error"
+                            ? styles.status_error
+                            : autoSyncConfig?.last_status === "success"
+                              ? styles.status_success
+                              : styles.status_idle
+                        }`}>
+                          {!team.is_active
+                            ? "Neaktívny watch"
+                            : autoSyncConfig
+                            ? getAutoSyncStatusLabel(autoSyncConfig.last_status)
+                            : "Načítavam"}
+                        </span>
+                      </div>
+                      {!team.is_active ? (
+                        <p className={styles.inactiveHint}>
+                          Neaktívny tím sa automaticky nesynchronizuje.
+                        </p>
+                      ) : null}
+                      {autoSyncForm ? (
+                        <div className={styles.watchAutoSyncForm}>
+                          <label className={styles.checkboxRow}>
+                            <input
+                              type="checkbox"
+                              checked={autoSyncForm.isEnabled}
+                              onChange={(event) =>
+                                setAutoSyncFormsByWatch((current) => ({
+                                  ...current,
+                                  [team.id]: {
+                                    ...current[team.id],
+                                    isEnabled: event.target.checked,
+                                  },
+                                }))
+                              }
+                              disabled={!team.is_active || isAutoSyncBusy}
+                            />
+                            Zapnutá
+                          </label>
+                          <select
+                            className={styles.select}
+                            value={autoSyncForm.weekday}
+                            onChange={(event) =>
+                              setAutoSyncFormsByWatch((current) => ({
+                                ...current,
+                                [team.id]: {
+                                  ...current[team.id],
+                                  weekday: event.target.value,
+                                },
+                              }))
+                            }
+                            disabled={!team.is_active || isAutoSyncBusy}
+                            aria-label={`Deň synchronizácie ${team.label}`}
+                          >
+                            {WEEKDAY_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="time"
+                            value={autoSyncForm.runTime}
+                            onChange={(event) =>
+                              setAutoSyncFormsByWatch((current) => ({
+                                ...current,
+                                [team.id]: {
+                                  ...current[team.id],
+                                  runTime: event.target.value,
+                                },
+                              }))
+                            }
+                            disabled={!team.is_active || isAutoSyncBusy}
+                            aria-label={`Čas synchronizácie ${team.label}`}
+                          />
+                          <button
+                            type="button"
+                            className={styles.smallLinkButton}
+                            onClick={() => void handleAutoSyncSave(team.id)}
+                            disabled={!team.is_active || isAutoSyncBusy}
+                          >
+                            {isAutoSyncBusy ? "Ukladám..." : "Uložiť"}
+                          </button>
+                        </div>
+                      ) : null}
+                      <div className={styles.watchAutoSyncMeta}>
+                        <span>Posledný: {formatDateTime(autoSyncConfig?.last_run_at || null)}</span>
+                        <span>Najbližší: {formatDateTime(
+                          autoSyncConfig?.next_run_at_preview ||
+                            autoSyncConfig?.next_run_at || null
+                        )}</span>
+                        <span>{autoSyncConfig?.last_message || "Bez správy"}</span>
+                      </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {competition.sync_error ? (
@@ -1375,13 +1590,20 @@ export default function SportsDataPage() {
                     </div>
                   ) : null}
 
-                  {competition.watched_teams.map((team) =>
-                    renderPlayerStats(
-                      team,
-                      playersByWatch[team.id],
-                      playerPagesByWatch[team.id]
-                    )
-                  )}
+                  {competition.watched_teams.map((team) => (
+                    <div key={team.id}>
+                      {renderPlayerStats(
+                        team,
+                        playersByWatch[team.id],
+                        playerPagesByWatch[team.id]
+                      )}
+                      {renderGoalieStats(
+                        team,
+                        goaliesByWatch[team.id],
+                        goaliePagesByWatch[team.id]
+                      )}
+                    </div>
+                  ))}
                 </section>
               ) : null}
             </article>

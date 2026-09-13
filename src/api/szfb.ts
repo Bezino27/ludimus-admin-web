@@ -25,6 +25,7 @@ export type AdminSzfbMatch = {
 export type AdminSzfbPlayerStat = {
   id: number;
   club_player_id: number | null;
+  szfb_player_id: number | null;
   rank: number;
   player_name: string;
   birth_year: number | null;
@@ -50,6 +51,36 @@ export type AdminSzfbPlayerStat = {
   display_order: number;
 };
 
+export type AdminSzfbGoalieStat = {
+  id: number;
+  club_player_id: number | null;
+  szfb_player_id: number;
+  rank: number;
+  jersey_number: number | null;
+  player_name: string;
+  birth_year: number | null;
+  games: number;
+  wins: number;
+  overtime_wins: number;
+  losses: number;
+  overtime_losses: number;
+  shots_against: number;
+  goals_against: number;
+  goals_against_average: string;
+  saves: number;
+  save_percentage: string;
+  minutes_played_seconds: number;
+  shutouts: number;
+  photo_url: string | null;
+  display_position: string;
+  height_cm: number | null;
+  weight_kg: number | null;
+  bio: string;
+  is_active: boolean;
+  is_featured: boolean;
+  display_order: number;
+};
+
 export type AdminSzfbTeamWatch = {
   id: number;
   label: string;
@@ -63,6 +94,7 @@ export type AdminSzfbTeamWatch = {
   finished_matches_count: number;
   upcoming_matches_count: number;
   player_stats_count: number;
+  goalie_stats_count: number;
 };
 
 export type AdminSzfbCompetition = {
@@ -88,8 +120,11 @@ export type AdminSzfbCompetition = {
 export type SzfbAutoSyncFrequency = "weekly";
 export type SzfbAutoSyncStatus = "idle" | "success" | "error" | "skipped";
 
-export type AdminSzfbAutoSyncConfig = {
+export type AdminSzfbWatchAutoSyncConfig = {
   id: number;
+  watch_id: number;
+  watch_label: string;
+  watch_is_active: boolean;
   club_slug: string;
   club_name: string;
   is_enabled: boolean;
@@ -103,7 +138,7 @@ export type AdminSzfbAutoSyncConfig = {
   last_message: string;
 };
 
-export type AdminSzfbAutoSyncConfigPayload = {
+export type AdminSzfbWatchAutoSyncConfigPayload = {
   club_slug: string;
   is_enabled: boolean;
   frequency: SzfbAutoSyncFrequency;
@@ -164,9 +199,12 @@ export async function getAdminSzfbCompetitions(
 }
 
 
-export async function getAdminSzfbAutoSyncConfig(clubSlug: string) {
-  const response = await api.get<AdminSzfbAutoSyncConfig>(
-    `${ADMIN_API_PREFIX}/szfb/auto-sync/`,
+export async function getAdminSzfbWatchAutoSyncConfig(
+  watchId: number,
+  clubSlug: string
+) {
+  const response = await api.get<AdminSzfbWatchAutoSyncConfig>(
+    `${ADMIN_API_PREFIX}/szfb/watches/${watchId}/auto-sync/`,
     {
       params: { club: clubSlug },
     }
@@ -175,15 +213,22 @@ export async function getAdminSzfbAutoSyncConfig(clubSlug: string) {
   return response.data;
 }
 
-export async function updateAdminSzfbAutoSyncConfig(
-  payload: AdminSzfbAutoSyncConfigPayload
+export async function updateAdminSzfbWatchAutoSyncConfig(
+  watchId: number,
+  payload: AdminSzfbWatchAutoSyncConfigPayload
 ) {
-  const response = await api.patch<AdminSzfbAutoSyncConfig>(
-    `${ADMIN_API_PREFIX}/szfb/auto-sync/`,
+  const response = await api.patch<AdminSzfbWatchAutoSyncConfig>(
+    `${ADMIN_API_PREFIX}/szfb/watches/${watchId}/auto-sync/`,
     payload
   );
 
   return response.data;
+}
+
+export async function deleteAdminSzfbWatch(watchId: number, clubSlug: string) {
+  await api.delete(`${ADMIN_API_PREFIX}/szfb/watches/${watchId}/`, {
+    params: { club: clubSlug },
+  });
 }
 
 export async function startAdminSzfbCompetitionSync(competitionId: number) {
@@ -234,6 +279,26 @@ export async function getAdminSzfbWatchPlayers(
 ) {
   const response = await api.get<PaginatedResponse<AdminSzfbPlayerStat>>(
     `${ADMIN_API_PREFIX}/szfb/watches/${watchId}/players/`,
+    {
+      params: {
+        page,
+        page_size: pageSize,
+        ...(clubSlug ? { club: clubSlug } : {}),
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function getAdminSzfbWatchGoalies(
+  watchId: number,
+  clubSlug?: string,
+  page = 1,
+  pageSize = 10
+) {
+  const response = await api.get<PaginatedResponse<AdminSzfbGoalieStat>>(
+    `${ADMIN_API_PREFIX}/szfb/watches/${watchId}/goalies/`,
     {
       params: {
         page,
