@@ -5,6 +5,7 @@ import {
   updateCurrentClubSeason,
 } from "../../api/pages";
 import { useAuth } from "../../context/useAuth";
+import { useConfirm } from "../confirmation/useConfirm";
 import type { AdminClubSeason } from "../../types/page";
 import styles from "./AdminLayout.module.css";
 
@@ -103,6 +104,7 @@ function buildSeasonOptions(clubSeason: AdminClubSeason | null) {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
+  const confirmAction = useConfirm();
   const location = useLocation();
 
   const [clubSeason, setClubSeason] = useState<AdminClubSeason | null>(null);
@@ -155,6 +157,17 @@ export default function AdminLayout() {
     if (!activeClubSlug || !nextSeason || nextSeason === clubSeason?.season) {
       return;
     }
+
+    const confirmed = await confirmAction({
+      title: "Zmeniť aktívnu sezónu?",
+      message:
+        "Zmena prepočíta sezónu kategórií a ovplyvní údaje zobrazované v celom adminovi aj na webe.",
+      subject: `${clubSeason?.season || "Bez sezóny"} → ${nextSeason}`,
+      confirmLabel: "Áno, zmeniť sezónu",
+      variant: "warning",
+      requireSecondStep: true,
+    });
+    if (!confirmed) return;
 
     setIsSeasonSaving(true);
     setSeasonStatus("");

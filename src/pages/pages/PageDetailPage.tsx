@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { getPublicPageUrl } from "../../api/config";
 import SectionEditorModal from "./SectionEditorModal";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 import {
   createPageSection,
   deletePage,
@@ -200,6 +201,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export default function PageDetailPage() {
+  const confirmAction = useConfirm();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -395,9 +397,14 @@ export default function PageDetailPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Naozaj chceš odstrániť stránku "${page.title}"? Táto akcia odstráni aj jej sekcie a nedá sa vrátiť späť.`
-    );
+    const confirmed = await confirmAction({
+      title: "Odstrániť stránku?",
+      message:
+        "Odstránia sa aj všetky sekcie a ich obsah. Túto akciu nie je možné vrátiť späť.",
+      subject: page.title,
+      confirmLabel: "Odstrániť stránku",
+      requireSecondStep: true,
+    });
     if (!confirmed) return;
 
     try {

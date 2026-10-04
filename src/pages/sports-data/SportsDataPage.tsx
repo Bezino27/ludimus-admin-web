@@ -2,9 +2,12 @@ import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAdminSzfbWatchSettings,
+  createAdminSzfbTeamBrand,
   deleteAdminSzfbWatch,
   getAdminSzfbCompetitions,
   getAdminSzfbCompetitionStandings,
+  getAdminSzfbCompetitionStandingZones,
+  getAdminSzfbTeamBrands,
   getAdminSzfbWatchMatches,
   getAdminSzfbWatchGoalies,
   getAdminSzfbWatchPlayers,
@@ -12,6 +15,8 @@ import {
   startAdminSzfbCompetitionSync,
   updateAdminSzfbWatchAutoSyncConfig,
   updateAdminSzfbPlayerStat,
+  updateAdminSzfbCompetitionStandingZones,
+  updateAdminSzfbTeamBrand,
   updateAdminSzfbWatchSettings,
   type AdminSzfbWatchAutoSyncConfig,
   type AdminSzfbCompetition,
@@ -19,6 +24,8 @@ import {
   type AdminSzfbGoalieStat,
   type AdminSzfbPlayerStat,
   type AdminSzfbStandingRow,
+  type AdminSzfbStandingZone,
+  type AdminSzfbTeamBrand,
   type AdminSzfbTeamWatch,
   type AdminSzfbWatchSettingsPayload,
   type SzfbSyncStatus,
@@ -43,6 +50,33 @@ type PlayerFormState = {
   clearPhoto: boolean;
   photoFile: File | null;
   photoUrl: string | null;
+};
+
+type TeamBrandFormState = {
+  mode: "create" | "edit";
+  brandId: number | null;
+  sourceTeamName: string;
+  displayName: string;
+  matchKey: string;
+  isActive: boolean;
+  clearLogo: boolean;
+  logoFile: File | null;
+  logoUrl: string | null;
+  shadowColor: string;
+  useShadowColor: boolean;
+};
+
+type EyeDropperConstructor = new () => {
+  open: () => Promise<{ sRGBHex: string }>;
+};
+
+type StandingZoneFormRow = {
+  clientId: string;
+  kind: AdminSzfbStandingZone["kind"];
+  label: string;
+  startPosition: string;
+  endPosition: string;
+  isActive: boolean;
 };
 
 type SettingsFormState = {
@@ -83,6 +117,15 @@ const WEEKDAY_OPTIONS = [
   { value: "4", label: "Piatok" },
   { value: "5", label: "Sobota" },
   { value: "6", label: "Nedeľa" },
+];
+
+const STANDING_ZONE_OPTIONS: Array<{
+  value: AdminSzfbStandingZone["kind"];
+  label: string;
+}> = [
+  { value: "playoff", label: "Play-off" },
+  { value: "barage", label: "Baráž" },
+  { value: "relegation", label: "Zostup" },
 ];
 
 const emptySettingsForm: SettingsFormState = {
@@ -216,6 +259,21 @@ export default function SportsDataPage() {
     null
   );
   const [isSavingModal, setIsSavingModal] = useState(false);
+  const [teamBrands, setTeamBrands] = useState<AdminSzfbTeamBrand[]>([]);
+  const [teamBrandManagerCompetitionId, setTeamBrandManagerCompetitionId] = useState<
+    number | null
+  >(null);
+  const [teamBrandForm, setTeamBrandForm] = useState<TeamBrandFormState | null>(
+    null
+  );
+  const [isTeamBrandLoading, setIsTeamBrandLoading] = useState(false);
+  const [isSavingTeamBrand, setIsSavingTeamBrand] = useState(false);
+
+  const [standingZoneManagerCompetitionId, setStandingZoneManagerCompetitionId] =
+    useState<number | null>(null);
+  const [standingZoneRows, setStandingZoneRows] = useState<StandingZoneFormRow[]>([]);
+  const [isStandingZoneLoading, setIsStandingZoneLoading] = useState(false);
+  const [isSavingStandingZones, setIsSavingStandingZones] = useState(false);
 
   const activeClub =
     user?.memberships?.find((membership) => membership.is_active) ??
@@ -245,6 +303,36 @@ export default function SportsDataPage() {
       (competition) => competition.season === seasonFilter
     );
   }, [competitions, seasonFilter]);
+
+  const teamBrandManagerCompetition = useMemo(
+    () =>
+      competitions.find(
+        (competition) => competition.id === teamBrandManagerCompetitionId
+      ) || null,
+    [competitions, teamBrandManagerCompetitionId]
+  );
+
+  const teamBrandManagerStandings = teamBrandManagerCompetition
+    ? standingsByCompetition[teamBrandManagerCompetition.id] || []
+    : [];
+
+  const standingZoneManagerCompetition = useMemo(
+    () =>
+      competitions.find(
+        (competition) => competition.id === standingZoneManagerCompetitionId
+      ) || null,
+    [competitions, standingZoneManagerCompetitionId]
+  );
+
+  const teamBrandManagerCurrentIds = useMemo(
+    () =>
+      new Set(
+        teamBrandManagerStandings
+          .map((row) => row.team_brand?.id)
+          .filter((id): id is number => id !== undefined)
+      ),
+    [teamBrandManagerStandings]
+  );
 
   const applyWatchAutoSyncConfig = useCallback(
     (config: AdminSzfbWatchAutoSyncConfig) => {
@@ -750,6 +838,293 @@ export default function SportsDataPage() {
     });
   };
 
+  const refreshTeamBrandData = useCallback(
+    async (competitionId?: number) => {
+      if (!activeClubSlug) return;
+
+      const brands = await getAdminSzfbTeamBrands(activeClubSlug);
+      setTeamBrands(brands);
+
+      if (competitionId) {
+        const standings = await getAdminSzfbCompetitionStandings(
+          competitionId,
+          activeClubSlug
+        );
+        setStandingsByCompetition((current) => ({
+          ...current,
+          [competitionId]: standings,
+        }));
+      }
+    },
+    [activeClubSlug]
+  );
+
+  const openTeamBrandManager = async (competition: AdminSzfbCompetition) => {
+    if (!activeClubSlug) {
+      setActionMessage("Nepodarilo sa určiť aktívny klub.");
+      return;
+    }
+
+    setTeamBrandManagerCompetitionId(competition.id);
+    setTeamBrandForm(null);
+    setIsTeamBrandLoading(true);
+    setActionMessage("");
+
+    try {
+      if (!standingsByCompetition[competition.id]) {
+        await ensureLeagueTable(competition.id);
+      }
+      await refreshTeamBrandData(competition.id);
+    } catch (error) {
+      console.error("Nepodarilo sa načítať správu tímov:", error);
+      setActionMessage("Správu tímov sa nepodarilo načítať.");
+    } finally {
+      setIsTeamBrandLoading(false);
+    }
+  };
+
+  const openTeamBrandFormForRow = (row: AdminSzfbStandingRow) => {
+    const brand = row.team_brand
+      ? teamBrands.find((item) => item.id === row.team_brand?.id) || row.team_brand
+      : null;
+
+    setTeamBrandForm({
+      mode: brand ? "edit" : "create",
+      brandId: brand?.id ?? null,
+      sourceTeamName: row.team_name,
+      displayName: brand?.display_name ?? row.team_name,
+      matchKey: brand?.match_key ?? row.team_name,
+      isActive: brand?.is_active ?? true,
+      clearLogo: false,
+      logoFile: null,
+      logoUrl: brand?.logo_url ?? null,
+      shadowColor: brand?.shadow_color ?? "",
+      useShadowColor: brand?.use_shadow_color ?? false,
+    });
+  };
+
+  const openStoredTeamBrandForm = (brand: AdminSzfbTeamBrand) => {
+    setTeamBrandForm({
+      mode: "edit",
+      brandId: brand.id,
+      sourceTeamName: brand.display_name,
+      displayName: brand.display_name,
+      matchKey: brand.match_key,
+      isActive: brand.is_active,
+      clearLogo: false,
+      logoFile: null,
+      logoUrl: brand.logo_url,
+      shadowColor: brand.shadow_color ?? "",
+      useShadowColor: brand.use_shadow_color ?? false,
+    });
+  };
+
+  const handleTeamBrandEyedropper = async () => {
+    const EyeDropper = (
+      window as Window & { EyeDropper?: EyeDropperConstructor }
+    ).EyeDropper;
+
+    if (!EyeDropper) {
+      setActionMessage(
+        "Tento prehliadač nepodporuje pipetu. Farbu vyber cez color input."
+      );
+      return;
+    }
+
+    try {
+      const result = await new EyeDropper().open();
+      setTeamBrandForm((current) =>
+        current
+          ? { ...current, shadowColor: result.sRGBHex.toUpperCase() }
+          : current
+      );
+      setActionMessage("");
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setActionMessage("Farbu sa nepodarilo odobrať pipetou.");
+      }
+    }
+  };
+
+  const handleTeamBrandSave = async () => {
+    if (
+      !teamBrandForm ||
+      !activeClubSlug ||
+      isSavingTeamBrand ||
+      !teamBrandManagerCompetitionId
+    ) {
+      return;
+    }
+
+    const normalizedShadowColor = teamBrandForm.shadowColor.trim().toUpperCase();
+    if (
+      normalizedShadowColor &&
+      !/^#[0-9A-F]{6}$/.test(normalizedShadowColor)
+    ) {
+      setActionMessage("Farba tieňa musí byť HEX hodnota vo formáte #RRGGBB.");
+      return;
+    }
+    if (teamBrandForm.useShadowColor && !normalizedShadowColor) {
+      setActionMessage("Pre manuálnu farbu najprv vyber farbu tieňa loga.");
+      return;
+    }
+
+    setIsSavingTeamBrand(true);
+    setActionMessage("");
+
+    try {
+      const payload = {
+        club_slug: activeClubSlug,
+        display_name: teamBrandForm.displayName,
+        match_key: teamBrandForm.matchKey,
+        logo: teamBrandForm.logoFile,
+        clear_logo: teamBrandForm.clearLogo,
+        shadow_color: normalizedShadowColor || null,
+        use_shadow_color: teamBrandForm.useShadowColor,
+        is_active: teamBrandForm.isActive,
+      };
+
+      if (teamBrandForm.mode === "edit" && teamBrandForm.brandId) {
+        await updateAdminSzfbTeamBrand(teamBrandForm.brandId, payload);
+      } else {
+        await createAdminSzfbTeamBrand(payload);
+      }
+
+      await refreshTeamBrandData(teamBrandManagerCompetitionId);
+      setTeamBrandForm(null);
+      setActionMessage("Branding tímu bol uložený.");
+    } catch (error) {
+      console.error("Nepodarilo sa uložiť branding tímu:", error);
+      setActionMessage(
+        "Branding tímu sa nepodarilo uložiť. Skontroluj rozpoznávací názov."
+      );
+    } finally {
+      setIsSavingTeamBrand(false);
+    }
+  };
+
+  const mapStandingZonesToFormRows = (zones: AdminSzfbStandingZone[]) =>
+    zones.map((zone) => ({
+      clientId: `zone-${zone.id}`,
+      kind: zone.kind,
+      label: zone.label,
+      startPosition: String(zone.start_position),
+      endPosition: String(zone.end_position),
+      isActive: zone.is_active,
+    }));
+
+  const openStandingZoneManager = async (competition: AdminSzfbCompetition) => {
+    if (!activeClubSlug) {
+      setActionMessage("Nepodarilo sa určiť aktívny klub.");
+      return;
+    }
+
+    setStandingZoneManagerCompetitionId(competition.id);
+    setIsStandingZoneLoading(true);
+    setActionMessage("");
+
+    try {
+      const zones = await getAdminSzfbCompetitionStandingZones(
+        competition.id,
+        activeClubSlug
+      );
+      setStandingZoneRows(mapStandingZonesToFormRows(zones));
+    } catch (error) {
+      console.error("Nepodarilo sa načítať zóny tabuľky:", error);
+      setActionMessage("Zóny tabuľky sa nepodarilo načítať.");
+    } finally {
+      setIsStandingZoneLoading(false);
+    }
+  };
+
+  const addStandingZoneRow = () => {
+    setStandingZoneRows((current) => [
+      ...current,
+      {
+        clientId: `new-${Date.now()}-${current.length}`,
+        kind: "playoff",
+        label: "Play-off",
+        startPosition: "1",
+        endPosition: "1",
+        isActive: true,
+      },
+    ]);
+  };
+
+  const updateStandingZoneRow = (
+    clientId: string,
+    patch: Partial<StandingZoneFormRow>
+  ) => {
+    setStandingZoneRows((current) =>
+      current.map((row) =>
+        row.clientId === clientId ? { ...row, ...patch } : row
+      )
+    );
+  };
+
+  const removeStandingZoneRow = (clientId: string) => {
+    setStandingZoneRows((current) =>
+      current.filter((row) => row.clientId !== clientId)
+    );
+  };
+
+  const handleStandingZonesSave = async () => {
+    if (
+      !standingZoneManagerCompetitionId ||
+      !activeClubSlug ||
+      isSavingStandingZones
+    ) {
+      return;
+    }
+
+    const zones = standingZoneRows.map((row, index) => ({
+      kind: row.kind,
+      label: row.label.trim(),
+      start_position: Number(row.startPosition),
+      end_position: Number(row.endPosition),
+      display_order: index,
+      is_active: row.isActive,
+    }));
+
+    if (
+      zones.some(
+        (zone) =>
+          !zone.label ||
+          !Number.isInteger(zone.start_position) ||
+          !Number.isInteger(zone.end_position) ||
+          zone.start_position < 1 ||
+          zone.end_position < zone.start_position
+      )
+    ) {
+      setActionMessage("Skontroluj názvy a pozície všetkých zón.");
+      return;
+    }
+
+    setIsSavingStandingZones(true);
+    setActionMessage("");
+
+    try {
+      const saved = await updateAdminSzfbCompetitionStandingZones(
+        standingZoneManagerCompetitionId,
+        activeClubSlug,
+        zones
+      );
+      setStandingZoneRows(mapStandingZonesToFormRows(saved));
+      setActionMessage("Zóny tabuľky boli uložené.");
+      setStandingZoneManagerCompetitionId(null);
+    } catch (error) {
+      console.error("Nepodarilo sa uložiť zóny tabuľky:", error);
+      setActionMessage(
+        axios.isAxiosError<{ zones?: string }>(error) &&
+          error.response?.data?.zones
+          ? error.response.data.zones
+          : "Zóny tabuľky sa nepodarilo uložiť."
+      );
+    } finally {
+      setIsSavingStandingZones(false);
+    }
+  };
+
   const openPlayerModal = (player: AdminSzfbPlayerStat) => {
     setPlayerForm({
       playerId: player.id,
@@ -942,6 +1317,7 @@ export default function SportsDataPage() {
               <th>#</th>
               <th>Tím</th>
               <th>Zápasy</th>
+              <th>Skóre</th>
               <th>Body</th>
             </tr>
           </thead>
@@ -949,8 +1325,33 @@ export default function SportsDataPage() {
             {standings.map((row) => (
               <tr key={row.id}>
                 <td>{row.position}</td>
-                <td>{row.team_name}</td>
+                <td>
+                  <div className={styles.standingTeamCell}>
+                    {row.team_brand?.logo_url ? (
+                      <img
+                        className={styles.standingTeamLogo}
+                        src={row.team_brand.logo_url}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className={styles.standingTeamLogoPlaceholder}>
+                        {row.team_name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <div>
+                      <strong>
+                        {row.team_brand?.display_name || row.team_name}
+                      </strong>
+                      {row.team_brand &&
+                      row.team_brand.display_name !== row.team_name ? (
+                        <span>{row.team_name}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </td>
                 <td>{row.played}</td>
+                <td>{row.score || "—"}</td>
                 <td>
                   <strong>{row.points}</strong>
                 </td>
@@ -1539,7 +1940,23 @@ export default function SportsDataPage() {
                 <section className={styles.detailPanel}>
                   <div className={styles.panelHeader}>
                     <h3>Liga / tabuľka</h3>
-                    <span>{competition.standings_count} riadkov</span>
+                    <div className={styles.panelHeaderActions}>
+                      <span>{competition.standings_count} riadkov</span>
+                      <button
+                        type="button"
+                        className={styles.smallLinkButton}
+                        onClick={() => void openStandingZoneManager(competition)}
+                      >
+                        Zóny tabuľky
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.smallLinkButton}
+                        onClick={() => void openTeamBrandManager(competition)}
+                      >
+                        Správa tímov
+                      </button>
+                    </div>
                   </div>
 
                   {detailLoading[leaguePanelKey] ? (
@@ -1788,6 +2205,549 @@ export default function SportsDataPage() {
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {standingZoneManagerCompetitionId !== null ? (
+        <div className={styles.modalBackdrop}>
+          <div className={`${styles.modal} ${styles.zoneModal}`}>
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Liga / tabuľka</p>
+                <h3>Zóny tabuľky</h3>
+                <p className={styles.zoneModalSubtitle}>
+                  {standingZoneManagerCompetition?.name || "Súťaž"}
+                  {standingZoneManagerCompetition?.season
+                    ? ` · ${standingZoneManagerCompetition.season}`
+                    : ""}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => setStandingZoneManagerCompetitionId(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            {isStandingZoneLoading ? (
+              <div className={styles.stateBox}>Načítavam zóny...</div>
+            ) : (
+              <>
+                <div className={styles.zoneIntro}>
+                  Nastav, ktoré pozície patria do play-off, baráže alebo zostupu.
+                  Pozície, ktoré nie sú v žiadnej zóne, zostanú na webe neutrálne.
+                </div>
+
+                {standingZoneRows.length === 0 ? (
+                  <div className={styles.emptyPanel}>
+                    Táto súťaž zatiaľ nemá nastavené žiadne zóny.
+                  </div>
+                ) : (
+                  <div className={styles.zoneList}>
+                    {standingZoneRows.map((row) => (
+                      <div key={row.clientId} className={styles.zoneRow}>
+                        <label className={styles.zoneField}>
+                          <span>Typ</span>
+                          <select
+                            value={row.kind}
+                            onChange={(event) => {
+                              const kind = event.target
+                                .value as AdminSzfbStandingZone["kind"];
+                              const defaultLabel =
+                                STANDING_ZONE_OPTIONS.find(
+                                  (option) => option.value === kind
+                                )?.label || row.label;
+                              updateStandingZoneRow(row.clientId, {
+                                kind,
+                                label:
+                                  STANDING_ZONE_OPTIONS.some(
+                                    (option) => option.label === row.label
+                                  )
+                                    ? defaultLabel
+                                    : row.label,
+                              });
+                            }}
+                          >
+                            {STANDING_ZONE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className={`${styles.zoneField} ${styles.zoneFieldName}`}>
+                          <span>Názov</span>
+                          <input
+                            value={row.label}
+                            onChange={(event) =>
+                              updateStandingZoneRow(row.clientId, {
+                                label: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+
+                        <label className={styles.zoneField}>
+                          <span>Od</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={row.startPosition}
+                            onChange={(event) =>
+                              updateStandingZoneRow(row.clientId, {
+                                startPosition: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+
+                        <label className={styles.zoneField}>
+                          <span>Do</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={row.endPosition}
+                            onChange={(event) =>
+                              updateStandingZoneRow(row.clientId, {
+                                endPosition: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+
+                        <label className={styles.zoneActiveToggle}>
+                          <input
+                            type="checkbox"
+                            checked={row.isActive}
+                            onChange={(event) =>
+                              updateStandingZoneRow(row.clientId, {
+                                isActive: event.target.checked,
+                              })
+                            }
+                          />
+                          Aktívna
+                        </label>
+
+                        <button
+                          type="button"
+                          className={styles.zoneRemoveButton}
+                          onClick={() => removeStandingZoneRow(row.clientId)}
+                        >
+                          Odstrániť
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={styles.zoneActionsRow}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={addStandingZoneRow}
+                  >
+                    + Pridať zónu
+                  </button>
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => setStandingZoneManagerCompetitionId(null)}
+                  >
+                    Zrušiť
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleStandingZonesSave()}
+                    disabled={isSavingStandingZones}
+                  >
+                    {isSavingStandingZones ? "Ukladám..." : "Uložiť zóny"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {teamBrandManagerCompetitionId !== null ? (
+        <div className={styles.modalBackdrop}>
+          <div className={`${styles.modal} ${styles.teamBrandModal}`}>
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Správa tímov</p>
+                <h3>
+                  {teamBrandForm
+                    ? teamBrandForm.mode === "edit"
+                      ? "Upraviť branding tímu"
+                      : "Pridať branding tímu"
+                    : teamBrandManagerCompetition?.name || "Tímy"}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => {
+                  if (teamBrandForm) {
+                    setTeamBrandForm(null);
+                  } else {
+                    setTeamBrandManagerCompetitionId(null);
+                  }
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {teamBrandForm ? (
+              <>
+                <div className={styles.teamBrandContext}>
+                  <span>Názov zo SZFB</span>
+                  <strong>{teamBrandForm.sourceTeamName}</strong>
+                  <p>
+                    Branding je spoločný pre mužov, juniorov aj ďalšie sezóny
+                    v rámci tohto klubu.
+                  </p>
+                </div>
+
+                <div className={styles.formGrid}>
+                  <label className={`${styles.field} ${styles.fieldFull}`}>
+                    <span>Zobrazovaný názov</span>
+                    <input
+                      value={teamBrandForm.displayName}
+                      onChange={(event) =>
+                        setTeamBrandForm((current) =>
+                          current
+                            ? { ...current, displayName: event.target.value }
+                            : current
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label className={`${styles.field} ${styles.fieldFull}`}>
+                    <span>Rozpoznávací názov</span>
+                    <input
+                      value={teamBrandForm.matchKey}
+                      onChange={(event) =>
+                        setTeamBrandForm((current) =>
+                          current
+                            ? { ...current, matchKey: event.target.value }
+                            : current
+                        )
+                      }
+                      placeholder="napr. snipers"
+                    />
+                    <small className={styles.fieldHint}>
+                      Použi čo najkratší jednoznačný názov, napr. „snipers“,
+                      „grasshoppers“ alebo „1 fbc trencin“.
+                    </small>
+                  </label>
+
+                  <label className={`${styles.field} ${styles.fieldFull}`}>
+                    <span>Logo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        setTeamBrandForm((current) =>
+                          current
+                            ? {
+                                ...current,
+                                logoFile: event.target.files?.[0] || null,
+                                clearLogo: false,
+                              }
+                            : current
+                        )
+                      }
+                    />
+                  </label>
+
+                  {teamBrandForm.logoUrl ? (
+                    <div className={`${styles.field} ${styles.fieldFull}`}>
+                      <span>Aktuálne logo</span>
+                      <div className={styles.teamBrandLogoPreview}>
+                        <img
+                          src={teamBrandForm.logoUrl}
+                          alt={teamBrandForm.displayName}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={`${styles.field} ${styles.fieldFull}`}>
+                    <span>Farba tieňa loga</span>
+                    <div className={styles.teamBrandColorRow}>
+                      <input
+                        type="text"
+                        value={teamBrandForm.shadowColor}
+                        placeholder="#RRGGBB"
+                        maxLength={7}
+                        pattern="#[0-9A-Fa-f]{6}"
+                        aria-label="HEX farba tieňa loga"
+                        onChange={(event) =>
+                          setTeamBrandForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  shadowColor: event.target.value.toUpperCase(),
+                                }
+                              : current
+                          )
+                        }
+                      />
+                      <input
+                        className={styles.teamBrandColorPicker}
+                        type="color"
+                        value={teamBrandForm.shadowColor || "#64748B"}
+                        aria-label="Vybrať farbu tieňa loga"
+                        onChange={(event) =>
+                          setTeamBrandForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  shadowColor: event.target.value.toUpperCase(),
+                                }
+                              : current
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className={styles.teamBrandEyedropperButton}
+                        onClick={() => void handleTeamBrandEyedropper()}
+                        aria-label="Odobrať farbu pipetou z loga"
+                        title="Odobrať farbu pipetou z loga"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="m14.5 5.5 4-4 4 4-4 4m-4-4 4 4-9.75 9.75-5 1 1-5L14.5 5.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="m12 8 4 4"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={() =>
+                          setTeamBrandForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  shadowColor: "",
+                                  useShadowColor: false,
+                                }
+                              : current
+                          )
+                        }
+                        disabled={!teamBrandForm.shadowColor}
+                      >
+                        Vymazať
+                      </button>
+                    </div>
+                    <small className={styles.fieldHint}>
+                      Použije sa iba ako záložná farba, ak sa farbu nepodarí
+                      automaticky zistiť z loga.
+                    </small>
+                    <label className={styles.teamBrandColorOverride}>
+                      <input
+                        type="checkbox"
+                        checked={teamBrandForm.useShadowColor}
+                        onChange={(event) =>
+                          setTeamBrandForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  useShadowColor: event.target.checked,
+                                }
+                              : current
+                          )
+                        }
+                      />
+                      Použiť túto farbu namiesto automaticky zistenej farby
+                    </label>
+                  </div>
+
+                  <label className={styles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={teamBrandForm.isActive}
+                      onChange={(event) =>
+                        setTeamBrandForm((current) =>
+                          current
+                            ? { ...current, isActive: event.target.checked }
+                            : current
+                        )
+                      }
+                    />
+                    Aktívny branding
+                  </label>
+
+                  {teamBrandForm.logoUrl ? (
+                    <label className={styles.checkboxRow}>
+                      <input
+                        type="checkbox"
+                        checked={teamBrandForm.clearLogo}
+                        onChange={(event) =>
+                          setTeamBrandForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  clearLogo: event.target.checked,
+                                  logoFile: event.target.checked
+                                    ? null
+                                    : current.logoFile,
+                                }
+                              : current
+                          )
+                        }
+                      />
+                      Zmazať aktuálne logo
+                    </label>
+                  ) : null}
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => setTeamBrandForm(null)}
+                  >
+                    Späť
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleTeamBrandSave()}
+                    disabled={isSavingTeamBrand}
+                  >
+                    {isSavingTeamBrand ? "Ukladám..." : "Uložiť tím"}
+                  </button>
+                </div>
+              </>
+            ) : isTeamBrandLoading ? (
+              <div className={styles.stateBox}>Načítavam tímy...</div>
+            ) : (
+              <>
+                <div className={styles.teamBrandIntro}>
+                  <p>
+                    Jedno logo a rozpoznávací názov sa použijú naprieč mužmi,
+                    juniormi aj ďalšími sezónami. SZFB synchronizácia tieto
+                    údaje nemaže.
+                  </p>
+                </div>
+
+                <div className={styles.teamBrandList}>
+                  {teamBrandManagerStandings.map((row) => (
+                    <div key={row.id} className={styles.teamBrandRow}>
+                      <div className={styles.teamBrandIdentity}>
+                        {row.team_brand?.logo_url ? (
+                          <img
+                            src={row.team_brand.logo_url}
+                            alt=""
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span>{row.team_name.slice(0, 1).toUpperCase()}</span>
+                        )}
+                        <div>
+                          <strong>
+                            {row.team_brand?.display_name || row.team_name}
+                          </strong>
+                          <small>{row.team_name}</small>
+                        </div>
+                      </div>
+
+                      <div className={styles.teamBrandMeta}>
+                        <span>
+                          {row.team_brand
+                            ? `Kľúč: ${row.team_brand.match_key}`
+                            : "Branding nie je nastavený"}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.smallLinkButton}
+                          onClick={() => openTeamBrandFormForRow(row)}
+                        >
+                          {row.team_brand ? "Upraviť" : "Nastaviť"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {teamBrands.some(
+                  (brand) => !teamBrandManagerCurrentIds.has(brand.id)
+                ) ? (
+                  <div className={styles.savedTeamBrands}>
+                    <div className={styles.panelSubheader}>
+                      <div>
+                        <h4>Ďalšie uložené tímy</h4>
+                        <p>Brandingy z iných súťaží alebo sezón.</p>
+                      </div>
+                    </div>
+                    <div className={styles.teamBrandList}>
+                      {teamBrands
+                        .filter(
+                          (brand) => !teamBrandManagerCurrentIds.has(brand.id)
+                        )
+                        .map((brand) => (
+                          <div key={brand.id} className={styles.teamBrandRow}>
+                            <div className={styles.teamBrandIdentity}>
+                              {brand.logo_url ? (
+                                <img src={brand.logo_url} alt="" loading="lazy" />
+                              ) : (
+                                <span>
+                                  {brand.display_name.slice(0, 1).toUpperCase()}
+                                </span>
+                              )}
+                              <div>
+                                <strong>{brand.display_name}</strong>
+                                <small>Kľúč: {brand.match_key}</small>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.smallLinkButton}
+                              onClick={() => openStoredTeamBrandForm(brand)}
+                            >
+                              Upraviť
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => setTeamBrandManagerCompetitionId(null)}
+                  >
+                    Zavrieť
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       ) : null}
 

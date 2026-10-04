@@ -17,6 +17,7 @@ import type {
 } from "../../types/page";
 import styles from "./CategoriesPage.module.css";
 import CategoryExtrasEditor from "./CategoryExtrasEditor.tsx";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 
 type MinimalMembership = {
   is_active: boolean;
@@ -33,6 +34,7 @@ const emptyForm = {
   birth_year_to: 2010,
   category_subname: "",
   league_name: "",
+  description: "",
   hero_image: null as File | null,
   coach_name: "",
   coach_email: "",
@@ -53,6 +55,7 @@ function slugify(value: string) {
 }
 
 export default function CategoriesPage() {
+  const confirmAction = useConfirm();
   const { user } = useAuth();
 
   const memberships = (user?.memberships ?? []) as MinimalMembership[];
@@ -267,6 +270,7 @@ export default function CategoriesPage() {
       birth_year_to: category.birth_year_to,
       category_subname: category.category_subname || "",
       league_name: category.league_name || "",
+      description: category.description || "",
       hero_image: null,
       coach_name: category.coach_name || "",
       coach_email: category.coach_email || "",
@@ -297,6 +301,7 @@ export default function CategoriesPage() {
       birth_year_to: form.birth_year_to,
       category_subname: form.category_subname,
       league_name: form.league_name,
+      description: form.description,
       hero_image: form.hero_image,
       coach_name: form.coach_name,
       coach_email: form.coach_email,
@@ -341,9 +346,15 @@ export default function CategoriesPage() {
   ) {
     event.stopPropagation();
 
-    if (!window.confirm(`Naozaj chceš odstrániť kategóriu ${category.name}?`)) {
-      return;
-    }
+    const confirmed = await confirmAction({
+      title: "Odstrániť kategóriu?",
+      message:
+        "Kategória a jej naviazané nastavenia prestanú byť dostupné. Túto akciu nie je možné vrátiť späť.",
+      subject: category.name,
+      confirmLabel: "Odstrániť kategóriu",
+      requireSecondStep: true,
+    });
+    if (!confirmed) return;
 
     setIsSaving(true);
     setMessage("");
@@ -674,6 +685,17 @@ export default function CategoriesPage() {
                 </div>
 
                 <div className={styles.editorGrid}>
+                  <label className={`${styles.field} ${styles.fieldWide}`}>
+                    <span>Popis kategórie v hero</span>
+                    <textarea
+                      name="description"
+                      value={form.description}
+                      onChange={handleInputChange}
+                      placeholder="Krátky popis kategórie zobrazovaný pod hlavným názvom."
+                      rows={4}
+                    />
+                  </label>
+
                   <label className={styles.field}>
                     <span>Hero obrázok</span>
                     <input type="file" accept="image/*" onChange={handleFileChange} />

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { deletePost, getPosts } from "../../api/posts";
 import { getPublicPageUrl } from "../../api/config";
 import { useAuth } from "../../context/useAuth";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 import type { AdminPost } from "../../types/post";
 import styles from "./PostsListPage.module.css";
 
@@ -57,6 +58,7 @@ function formatDate(dateString: string) {
 }
 
 export default function PostsListPage() {
+  const confirmAction = useConfirm();
   const { user } = useAuth();
   const selectedClub = (user?.memberships?.[0] as UserMembership | undefined) ?? null;
 
@@ -153,7 +155,12 @@ export default function PostsListPage() {
   }, [filteredPosts, page]);
 
   const handleDelete = async (postId: number, title: string) => {
-    const confirmed = window.confirm(`Naozaj chcete zmazať článok "${title}"?`);
+    const confirmed = await confirmAction({
+      title: "Zmazať článok?",
+      message: "Článok sa odstráni z administrácie aj verejného webu.",
+      subject: title,
+      confirmLabel: "Zmazať článok",
+    });
     if (!confirmed) return;
 
     try {

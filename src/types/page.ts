@@ -58,6 +58,7 @@ export type AdminTeamCategory = {
   display_years: string;
   category_subname: string;
   league_name: string;
+  description: string;
   hero_image: string | null;
   hero_image_url: string | null;
   coach_name: string;
@@ -88,6 +89,7 @@ export type AdminTeamCategoryPayload = {
   birth_year_to: number;
   category_subname: string;
   league_name: string;
+  description: string;
   hero_image?: File | null;
   coach_name: string;
   coach_email: string;

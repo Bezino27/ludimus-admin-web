@@ -3,13 +3,47 @@ import { ADMIN_API_PREFIX } from "./config";
 
 export type SzfbSyncStatus = "idle" | "running" | "success" | "error";
 
+export type AdminSzfbTeamBrand = {
+  id: number;
+  display_name: string;
+  match_key: string;
+  normalized_match_key: string;
+  logo_url: string | null;
+  shadow_color: string | null;
+  use_shadow_color: boolean;
+  is_active: boolean;
+};
+
+export type AdminSzfbStandingZone = {
+  id: number;
+  kind: "playoff" | "barage" | "relegation";
+  label: string;
+  start_position: number;
+  end_position: number;
+  display_order: number;
+  is_active: boolean;
+};
+
+export type AdminSzfbStandingZoneInput = Omit<AdminSzfbStandingZone, "id">;
+
 export type AdminSzfbStandingRow = {
   id: number;
   position: number;
   team_name: string;
+  team_brand: AdminSzfbTeamBrand | null;
   played: number;
+  goals_for: number | null;
+  goals_against: number | null;
+  score: string | null;
   points: number;
 };
+
+export type SzfbDecisionType =
+  | "regulation"
+  | "overtime"
+  | "shootout"
+  | "unknown"
+  | "";
 
 export type AdminSzfbMatch = {
   id: number;
@@ -17,8 +51,10 @@ export type AdminSzfbMatch = {
   match_date: string | null;
   match_time: string | null;
   opponent: string;
+  opponent_brand: AdminSzfbTeamBrand | null;
   venue: string;
   result: string;
+  decision_type: SzfbDecisionType;
   is_home: boolean | null;
 };
 
@@ -167,6 +203,17 @@ export type AdminSzfbPlayerUpdatePayload = {
   display_order?: number;
 };
 
+export type AdminSzfbTeamBrandPayload = {
+  club_slug: string;
+  display_name?: string;
+  match_key?: string;
+  logo?: File | null;
+  clear_logo?: boolean;
+  shadow_color?: string | null;
+  use_shadow_color?: boolean;
+  is_active?: boolean;
+};
+
 export type AdminSzfbWatchSettingsPayload = {
   club_slug: string;
   szfb_competition_id: number;
@@ -251,6 +298,111 @@ export async function getAdminSzfbCompetitionStandings(
   );
 
   return response.data;
+}
+
+export async function getAdminSzfbCompetitionStandingZones(
+  competitionId: number,
+  clubSlug: string
+) {
+  const response = await api.get<AdminSzfbStandingZone[]>(
+    `${ADMIN_API_PREFIX}/szfb/competitions/${competitionId}/standing-zones/`,
+    { params: { club: clubSlug } }
+  );
+
+  return response.data;
+}
+
+export async function updateAdminSzfbCompetitionStandingZones(
+  competitionId: number,
+  clubSlug: string,
+  zones: AdminSzfbStandingZoneInput[]
+) {
+  const response = await api.put<AdminSzfbStandingZone[]>(
+    `${ADMIN_API_PREFIX}/szfb/competitions/${competitionId}/standing-zones/`,
+    {
+      club_slug: clubSlug,
+      zones,
+    }
+  );
+
+  return response.data;
+}
+
+function buildTeamBrandFormData(payload: AdminSzfbTeamBrandPayload) {
+  const formData = new FormData();
+
+  formData.append("club_slug", payload.club_slug);
+
+  if (payload.display_name !== undefined) {
+    formData.append("display_name", payload.display_name);
+  }
+
+  if (payload.match_key !== undefined) {
+    formData.append("match_key", payload.match_key);
+  }
+
+  if (payload.logo) {
+    formData.append("logo", payload.logo);
+  }
+
+  if (payload.clear_logo !== undefined) {
+    formData.append("clear_logo", String(payload.clear_logo));
+  }
+
+  if (payload.shadow_color !== undefined) {
+    formData.append("shadow_color", payload.shadow_color ?? "");
+  }
+
+  if (payload.use_shadow_color !== undefined) {
+    formData.append("use_shadow_color", String(payload.use_shadow_color));
+  }
+
+  if (payload.is_active !== undefined) {
+    formData.append("is_active", String(payload.is_active));
+  }
+
+  return formData;
+}
+
+export async function getAdminSzfbTeamBrands(clubSlug: string) {
+  const response = await api.get<AdminSzfbTeamBrand[]>(
+    `${ADMIN_API_PREFIX}/szfb/team-brands/`,
+    { params: { club: clubSlug } }
+  );
+
+  return response.data;
+}
+
+export async function createAdminSzfbTeamBrand(
+  payload: AdminSzfbTeamBrandPayload
+) {
+  const response = await api.post<AdminSzfbTeamBrand>(
+    `${ADMIN_API_PREFIX}/szfb/team-brands/`,
+    buildTeamBrandFormData(payload)
+  );
+
+  return response.data;
+}
+
+export async function updateAdminSzfbTeamBrand(
+  brandId: number,
+  payload: AdminSzfbTeamBrandPayload
+) {
+  const response = await api.patch<AdminSzfbTeamBrand>(
+    `${ADMIN_API_PREFIX}/szfb/team-brands/${brandId}/`,
+    buildTeamBrandFormData(payload)
+  );
+
+  return response.data;
+}
+
+export async function deleteAdminSzfbTeamBrand(
+  brandId: number,
+  clubSlug: string
+) {
+  await api.delete(`${ADMIN_API_PREFIX}/szfb/team-brands/${brandId}/`, {
+    params: { club: clubSlug },
+  });
 }
 
 export async function getAdminSzfbWatchMatches(

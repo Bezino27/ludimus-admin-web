@@ -354,6 +354,15 @@
   min-width: 0;
 }
 
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldWide textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
 .field span,
 .checkboxField {
   color: #111827;

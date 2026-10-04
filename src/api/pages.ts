@@ -112,6 +112,7 @@ function buildCategoryFormData(payload: AdminTeamCategoryPayload) {
   formData.append("birth_year_to", String(payload.birth_year_to));
   formData.append("category_subname", payload.category_subname);
   formData.append("league_name", payload.league_name);
+  formData.append("description", payload.description);
   formData.append("coach_name", payload.coach_name);
   formData.append("coach_email", payload.coach_email);
   formData.append("coach_phone", payload.coach_phone);

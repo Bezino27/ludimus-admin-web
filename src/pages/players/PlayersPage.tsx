@@ -16,6 +16,7 @@ import {
   type AdminSzfbCompetition,
 } from "../../api/szfb";
 import { useAuth } from "../../context/useAuth";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 import styles from "./PlayersPage.module.css";
 
 type ActiveFilter = "all" | "true" | "false";
@@ -87,6 +88,7 @@ function getErrorMessage(error: unknown) {
 }
 
 export default function PlayersPage() {
+  const confirmAction = useConfirm();
   const { user } = useAuth();
   const skipNextFilterLoadRef = useRef(false);
 
@@ -473,9 +475,14 @@ export default function PlayersPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Naozaj chcete vymazať hráča ${playerForm.fullName}? Táto akcia je nevratná.`
-    );
+    const confirmed = await confirmAction({
+      title: "Vymazať hráča?",
+      message:
+        "Hráč a jeho manuálne spravované údaje budú natrvalo odstránené.",
+      subject: playerForm.fullName,
+      confirmLabel: "Vymazať hráča",
+      requireSecondStep: true,
+    });
 
     if (!confirmed) {
       return;

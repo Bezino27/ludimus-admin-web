@@ -897,3 +897,447 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* # LEAGUE TABLE BRANDING */
+.panelHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.standingTeamCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.standingTeamCell > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.standingTeamCell strong {
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 850;
+}
+
+.standingTeamCell span {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.standingTeamLogo,
+.standingTeamLogoPlaceholder {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.standingTeamLogo {
+  object-fit: contain;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.standingTeamLogoPlaceholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+/* # TEAM BRAND MANAGER */
+.teamBrandModal {
+  width: min(900px, 100%);
+}
+
+.teamBrandIntro,
+.teamBrandContext {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.teamBrandIntro p,
+.teamBrandContext p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.teamBrandContext span,
+.teamBrandContext strong {
+  display: block;
+}
+
+.teamBrandContext span {
+  margin-bottom: 4px;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.teamBrandContext strong {
+  margin-bottom: 6px;
+  color: #111827;
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 850;
+}
+
+.teamBrandList {
+  display: grid;
+  gap: 8px;
+}
+
+.teamBrandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.teamBrandIdentity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.teamBrandIdentity > img,
+.teamBrandIdentity > span {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.teamBrandIdentity > img {
+  object-fit: contain;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.teamBrandIdentity > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.teamBrandIdentity > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.teamBrandIdentity strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamBrandIdentity small,
+.teamBrandMeta span,
+.fieldHint {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.teamBrandMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.savedTeamBrands {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.teamBrandLogoPreview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 130px;
+  height: 130px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+.teamBrandLogoPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.teamBrandColorRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 52px 44px auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.field .teamBrandColorPicker {
+  width: 52px;
+  height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.teamBrandColorRow .secondaryButton {
+  min-height: 44px;
+}
+
+.teamBrandEyedropperButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.teamBrandEyedropperButton:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.teamBrandEyedropperButton svg {
+  width: 21px;
+  height: 21px;
+}
+
+.teamBrandColorOverride {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 2px;
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+.field .teamBrandColorOverride input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  padding: 0;
+}
+
+.fieldHint {
+  display: block;
+  margin-top: -2px;
+}
+
+@media (max-width: 760px) {
+  .panelHeaderActions,
+  .teamBrandRow,
+  .teamBrandMeta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .panelHeaderActions,
+  .teamBrandMeta {
+    justify-content: flex-start;
+  }
+
+  .teamBrandRow .smallLinkButton {
+    width: 100%;
+  }
+
+  .teamBrandColorRow {
+    grid-template-columns: minmax(0, 1fr) 52px 44px;
+  }
+
+  .teamBrandColorRow .secondaryButton {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+/* # STANDING ZONES */
+.zoneModal {
+  width: min(980px, 100%);
+}
+
+.zoneModalSubtitle {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.zoneIntro {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.zoneList {
+  display: grid;
+  gap: 10px;
+}
+
+.zoneRow {
+  display: grid;
+  grid-template-columns: 150px minmax(180px, 1fr) 90px 90px auto auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.zoneField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.zoneField span {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.zoneField input,
+.zoneField select {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+}
+
+.zoneField input:focus,
+.zoneField select:focus {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.zoneFieldName {
+  min-width: 180px;
+}
+
+.zoneActiveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.zoneActiveToggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.zoneRemoveButton {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fffafa;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.zoneRemoveButton:hover {
+  background: #fff1f2;
+}
+
+.zoneActionsRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .zoneRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zoneFieldName {
+    min-width: 0;
+  }
+
+  .zoneActiveToggle,
+  .zoneRemoveButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .zoneRow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -4,6 +4,7 @@ import { getPublicPageUrl } from "../../api/config";
 import { deletePage, getPages } from "../../api/pages";
 import type { AdminPage } from "../../types/page";
 import styles from "./PagesAdmin.module.css";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 
 const PAGE_TYPE_LABELS: Record<string, string> = {
   home: "Domov",
@@ -60,6 +61,7 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function PagesListPage() {
+  const confirmAction = useConfirm();
   const navigate = useNavigate();
 
   const [pages, setPages] = useState<AdminPage[]>([]);
@@ -136,9 +138,14 @@ export default function PagesListPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Naozaj chceš odstrániť stránku "${page.title}"?`
-    );
+    const confirmed = await confirmAction({
+      title: "Odstrániť stránku?",
+      message:
+        "Odstránia sa aj všetky sekcie a obsah tejto stránky. Túto akciu nie je možné vrátiť späť.",
+      subject: page.title,
+      confirmLabel: "Odstrániť stránku",
+      requireSecondStep: true,
+    });
 
     if (!confirmed) {
       return;

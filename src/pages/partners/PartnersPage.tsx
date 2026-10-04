@@ -11,6 +11,7 @@ import {
 } from "../../api/partners";
 import { getCurrentClubSeason } from "../../api/pages";
 import { useAuth } from "../../context/useAuth";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 import type { AdminClubSeason } from "../../types/page";
 import type {
   AdminPartner,
@@ -53,6 +54,7 @@ const emptyForm = {
 };
 
 export default function PartnersPage() {
+  const confirmAction = useConfirm();
   const { user } = useAuth();
 
   const memberships = (user?.memberships ?? []) as MinimalMembership[];
@@ -271,9 +273,15 @@ export default function PartnersPage() {
   }
 
   async function handleDelete(partner: AdminPartner) {
-    if (!window.confirm(`Naozaj chceš odstrániť partnera ${partner.name}?`)) {
-      return;
-    }
+    const confirmed = await confirmAction({
+      title: "Odstrániť partnera?",
+      message:
+        "Partner a jeho logo sa odstránia z adminu aj verejného webu. Akciu nie je možné vrátiť späť.",
+      subject: partner.name,
+      confirmLabel: "Odstrániť partnera",
+      requireSecondStep: true,
+    });
+    if (!confirmed) return;
 
     setBusyPartnerId(partner.id);
     setMessage("");

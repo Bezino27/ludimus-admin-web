@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { deletePoll, getPolls } from "../../api/polls";
 import { useAuth } from "../../context/useAuth";
+import { useConfirm } from "../../components/confirmation/useConfirm";
 import type { Poll } from "../../types/poll";
 import type { Membership } from "../../types/auth";
 import styles from "./PollsListPage.module.css";
@@ -44,6 +45,7 @@ function getOptionPercent(votes: number, totalVotes: number) {
 }
 
 export default function PollsListPage() {
+  const confirmAction = useConfirm();
   const { user } = useAuth();
   const selectedClub = (user?.memberships?.[0] as Membership | undefined) ?? null;
 
@@ -132,7 +134,13 @@ export default function PollsListPage() {
   }, [filteredPolls, page]);
 
   const handleDelete = async (pollId: number, question: string) => {
-    const confirmed = window.confirm(`Naozaj chcete zmazať anketu "${question}"?`);
+    const confirmed = await confirmAction({
+      title: "Zmazať anketu?",
+      message: "Anketa a jej výsledky budú natrvalo odstránené.",
+      subject: question,
+      confirmLabel: "Zmazať anketu",
+      requireSecondStep: true,
+    });
     if (!confirmed) return;
 
     try {
