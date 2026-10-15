@@ -55,9 +55,10 @@ type PlayerFormState = {
 type TeamBrandFormState = {
   mode: "create" | "edit";
   brandId: number | null;
-  sourceTeamName: string;
-  displayName: string;
-  matchKey: string;
+  competitionId: number;
+  teamName: string;
+  szfbCompetitorId: number | null;
+  brandingSourceId: string;
   isActive: boolean;
   clearLogo: boolean;
   logoFile: File | null;
@@ -312,9 +313,13 @@ export default function SportsDataPage() {
     [competitions, teamBrandManagerCompetitionId]
   );
 
-  const teamBrandManagerStandings = teamBrandManagerCompetition
-    ? standingsByCompetition[teamBrandManagerCompetition.id] || []
-    : [];
+  const teamBrandManagerStandings = useMemo(
+    () =>
+      teamBrandManagerCompetition
+        ? standingsByCompetition[teamBrandManagerCompetition.id] || []
+        : [],
+    [standingsByCompetition, teamBrandManagerCompetition]
+  );
 
   const standingZoneManagerCompetition = useMemo(
     () =>
@@ -891,15 +896,18 @@ export default function SportsDataPage() {
     setTeamBrandForm({
       mode: brand ? "edit" : "create",
       brandId: brand?.id ?? null,
-      sourceTeamName: row.team_name,
-      displayName: brand?.display_name ?? row.team_name,
-      matchKey: brand?.match_key ?? row.team_name,
+      competitionId: brand?.competition ?? teamBrandManagerCompetitionId!,
+      teamName: row.team_name,
+      szfbCompetitorId: row.szfb_competitor_id,
+      brandingSourceId: brand?.branding_source
+        ? String(brand.branding_source)
+        : "",
       isActive: brand?.is_active ?? true,
       clearLogo: false,
       logoFile: null,
-      logoUrl: brand?.logo_url ?? null,
-      shadowColor: brand?.shadow_color ?? "",
-      useShadowColor: brand?.use_shadow_color ?? false,
+      logoUrl: brand?.own_logo_url ?? null,
+      shadowColor: brand?.own_shadow_color ?? "",
+      useShadowColor: brand?.own_use_shadow_color ?? false,
     });
   };
 
@@ -907,15 +915,18 @@ export default function SportsDataPage() {
     setTeamBrandForm({
       mode: "edit",
       brandId: brand.id,
-      sourceTeamName: brand.display_name,
-      displayName: brand.display_name,
-      matchKey: brand.match_key,
+      competitionId: brand.competition,
+      teamName: brand.team_name,
+      szfbCompetitorId: brand.szfb_competitor_id,
+      brandingSourceId: brand.branding_source
+        ? String(brand.branding_source)
+        : "",
       isActive: brand.is_active,
       clearLogo: false,
       logoFile: null,
-      logoUrl: brand.logo_url,
-      shadowColor: brand.shadow_color ?? "",
-      useShadowColor: brand.use_shadow_color ?? false,
+      logoUrl: brand.own_logo_url,
+      shadowColor: brand.own_shadow_color ?? "",
+      useShadowColor: brand.own_use_shadow_color ?? false,
     });
   };
 
@@ -975,8 +986,16 @@ export default function SportsDataPage() {
     try {
       const payload = {
         club_slug: activeClubSlug,
-        display_name: teamBrandForm.displayName,
-        match_key: teamBrandForm.matchKey,
+        ...(teamBrandForm.mode === "create"
+          ? {
+              competition: teamBrandForm.competitionId,
+              team_name: teamBrandForm.teamName,
+              szfb_competitor_id: teamBrandForm.szfbCompetitorId,
+            }
+          : {}),
+        branding_source: teamBrandForm.brandingSourceId
+          ? Number(teamBrandForm.brandingSourceId)
+          : null,
         logo: teamBrandForm.logoFile,
         clear_logo: teamBrandForm.clearLogo,
         shadow_color: normalizedShadowColor || null,
@@ -996,7 +1015,7 @@ export default function SportsDataPage() {
     } catch (error) {
       console.error("Nepodarilo sa uložiť branding tímu:", error);
       setActionMessage(
-        "Branding tímu sa nepodarilo uložiť. Skontroluj rozpoznávací názov."
+        "Branding tímu sa nepodarilo uložiť. Skontroluj prepojenie brandingu."
       );
     } finally {
       setIsSavingTeamBrand(false);
@@ -1340,13 +1359,7 @@ export default function SportsDataPage() {
                       </span>
                     )}
                     <div>
-                      <strong>
-                        {row.team_brand?.display_name || row.team_name}
-                      </strong>
-                      {row.team_brand &&
-                      row.team_brand.display_name !== row.team_name ? (
-                        <span>{row.team_name}</span>
-                      ) : null}
+                      <strong>{row.team_name}</strong>
                     </div>
                   </div>
                 </td>
@@ -2411,46 +2424,81 @@ export default function SportsDataPage() {
               <>
                 <div className={styles.teamBrandContext}>
                   <span>Názov zo SZFB</span>
-                  <strong>{teamBrandForm.sourceTeamName}</strong>
+                  <strong>{teamBrandForm.teamName}</strong>
                   <p>
-                    Branding je spoločný pre mužov, juniorov aj ďalšie sezóny
-                    v rámci tohto klubu.
+                    Presný názov spravuje SZFB synchronizácia a na verejnom
+                    webe sa nemení.
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <label className={`${styles.field} ${styles.fieldFull}`}>
-                    <span>Zobrazovaný názov</span>
-                    <input
-                      value={teamBrandForm.displayName}
-                      onChange={(event) =>
-                        setTeamBrandForm((current) =>
-                          current
-                            ? { ...current, displayName: event.target.value }
-                            : current
-                        )
-                      }
-                    />
+                    <span>Presný názov tímu zo SZFB</span>
+                    <input value={teamBrandForm.teamName} readOnly />
                   </label>
 
                   <label className={`${styles.field} ${styles.fieldFull}`}>
-                    <span>Rozpoznávací názov</span>
-                    <input
-                      value={teamBrandForm.matchKey}
+                    <span>Prepojiť branding</span>
+                    <select
+                      className={styles.select}
+                      value={teamBrandForm.brandingSourceId}
                       onChange={(event) =>
                         setTeamBrandForm((current) =>
                           current
-                            ? { ...current, matchKey: event.target.value }
+                            ? {
+                                ...current,
+                                brandingSourceId: event.target.value,
+                              }
                             : current
                         )
                       }
-                      placeholder="napr. snipers"
-                    />
+                    >
+                      <option value="">Vlastný branding</option>
+                      {teamBrands
+                        .filter((brand) => brand.id !== teamBrandForm.brandId)
+                        .map((brand) => (
+                          <option key={brand.id} value={brand.id}>
+                            {brand.team_name} — {brand.competition_name}
+                          </option>
+                        ))}
+                    </select>
                     <small className={styles.fieldHint}>
-                      Použi čo najkratší jednoznačný názov, napr. „snipers“,
-                      „grasshoppers“ alebo „1 fbc trencin“.
+                      Prepojený tím používa logo a farbu vybraného brandingu,
+                      ale ponechá si vlastný presný SZFB názov.
                     </small>
                   </label>
+
+                  {teamBrandForm.brandingSourceId ? (
+                    <div className={`${styles.teamBrandContext} ${styles.fieldFull}`}>
+                      <span>Branding prepojený s</span>
+                      <strong>
+                        {teamBrands.find(
+                          (brand) =>
+                            brand.id === Number(teamBrandForm.brandingSourceId)
+                        )?.team_name || "Vybraný tím"}
+                        {teamBrands.find(
+                          (brand) =>
+                            brand.id === Number(teamBrandForm.brandingSourceId)
+                        )?.competition_name
+                          ? ` — ${teamBrands.find(
+                              (brand) =>
+                                brand.id === Number(teamBrandForm.brandingSourceId)
+                            )?.competition_name}`
+                          : ""}
+                      </strong>
+                      <button
+                        type="button"
+                        className={styles.smallLinkButton}
+                        onClick={() =>
+                          setTeamBrandForm((current) =>
+                            current ? { ...current, brandingSourceId: "" } : current
+                          )
+                        }
+                      >
+                        Zrušiť prepojenie
+                      </button>
+                    </div>
+                  ) : null}
 
                   <label className={`${styles.field} ${styles.fieldFull}`}>
                     <span>Logo</span>
@@ -2477,7 +2525,7 @@ export default function SportsDataPage() {
                       <div className={styles.teamBrandLogoPreview}>
                         <img
                           src={teamBrandForm.logoUrl}
-                          alt={teamBrandForm.displayName}
+                          alt={teamBrandForm.teamName}
                         />
                       </div>
                     </div>
@@ -2648,9 +2696,9 @@ export default function SportsDataPage() {
               <>
                 <div className={styles.teamBrandIntro}>
                   <p>
-                    Jedno logo a rozpoznávací názov sa použijú naprieč mužmi,
-                    juniormi aj ďalšími sezónami. SZFB synchronizácia tieto
-                    údaje nemaže.
+                    Každý tím si ponechá presný názov zo SZFB. Logo a farbu
+                    môže mať vlastné alebo ich explicitne zdieľať s iným
+                    uloženým tímom.
                   </p>
                 </div>
 
@@ -2669,16 +2717,25 @@ export default function SportsDataPage() {
                         )}
                         <div>
                           <strong>
-                            {row.team_brand?.display_name || row.team_name}
+                            {row.team_name}
                           </strong>
-                          <small>{row.team_name}</small>
+                          {row.team_brand?.branding_source_name ? (
+                            <small>
+                              Branding prepojený s: {row.team_brand.branding_source_name}
+                              {row.team_brand.branding_source_competition_name
+                                ? ` — ${row.team_brand.branding_source_competition_name}`
+                                : ""}
+                            </small>
+                          ) : null}
                         </div>
                       </div>
 
                       <div className={styles.teamBrandMeta}>
                         <span>
                           {row.team_brand
-                            ? `Kľúč: ${row.team_brand.match_key}`
+                            ? row.team_brand.branding_source_name
+                              ? "Zdieľaný branding"
+                              : "Vlastný branding"
                             : "Branding nie je nastavený"}
                         </span>
                         <button
@@ -2715,12 +2772,26 @@ export default function SportsDataPage() {
                                 <img src={brand.logo_url} alt="" loading="lazy" />
                               ) : (
                                 <span>
-                                  {brand.display_name.slice(0, 1).toUpperCase()}
+                                  {brand.team_name.slice(0, 1).toUpperCase()}
                                 </span>
                               )}
                               <div>
-                                <strong>{brand.display_name}</strong>
-                                <small>Kľúč: {brand.match_key}</small>
+                                <strong>{brand.team_name}</strong>
+                                <small>
+                                  {brand.competition_name}
+                                  {brand.competition_season
+                                    ? ` (${brand.competition_season})`
+                                    : ""}
+                                </small>
+                                <small>
+                                  {brand.branding_source_name
+                                    ? `Branding prepojený s: ${brand.branding_source_name}${
+                                        brand.branding_source_competition_name
+                                          ? ` — ${brand.branding_source_competition_name}`
+                                          : ""
+                                      }`
+                                    : "Vlastný branding"}
+                                </small>
                               </div>
                             </div>
                             <button

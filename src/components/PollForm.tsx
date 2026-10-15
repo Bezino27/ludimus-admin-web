@@ -120,27 +120,40 @@ function getVideoFileError(file: File) {
   return "";
 }
 
-function VideoPreview({ file, url }: { file?: File | null; url?: string | null }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+function LocalVideoPreview({ file }: { file: File }) {
+  const [previewUrl] = useState(() => URL.createObjectURL(file));
 
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(url ?? null);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file, url]);
-
-  if (!previewUrl) return null;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   return (
     <video
       className={styles.videoPreview}
       src={previewUrl}
+      controls
+      playsInline
+      preload="metadata"
+    />
+  );
+}
+
+function VideoPreview({ file, url }: { file?: File | null; url?: string | null }) {
+  if (file) {
+    return (
+      <LocalVideoPreview
+        key={`${file.name}-${file.size}-${file.lastModified}`}
+        file={file}
+      />
+    );
+  }
+
+  if (!url) return null;
+
+  return (
+    <video
+      className={styles.videoPreview}
+      src={url}
       controls
       playsInline
       preload="metadata"

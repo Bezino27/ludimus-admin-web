@@ -5,12 +5,21 @@ export type SzfbSyncStatus = "idle" | "running" | "success" | "error";
 
 export type AdminSzfbTeamBrand = {
   id: number;
+  competition: number;
+  competition_name: string;
+  competition_season: string;
+  team_name: string;
   display_name: string;
-  match_key: string;
-  normalized_match_key: string;
+  szfb_competitor_id: number | null;
+  branding_source: number | null;
+  branding_source_name: string | null;
+  branding_source_competition_name: string | null;
   logo_url: string | null;
   shadow_color: string | null;
   use_shadow_color: boolean;
+  own_logo_url: string | null;
+  own_shadow_color: string | null;
+  own_use_shadow_color: boolean;
   is_active: boolean;
 };
 
@@ -30,6 +39,7 @@ export type AdminSzfbStandingRow = {
   id: number;
   position: number;
   team_name: string;
+  szfb_competitor_id: number | null;
   team_brand: AdminSzfbTeamBrand | null;
   played: number;
   goals_for: number | null;
@@ -205,8 +215,10 @@ export type AdminSzfbPlayerUpdatePayload = {
 
 export type AdminSzfbTeamBrandPayload = {
   club_slug: string;
-  display_name?: string;
-  match_key?: string;
+  competition?: number;
+  team_name?: string;
+  szfb_competitor_id?: number | null;
+  branding_source?: number | null;
   logo?: File | null;
   clear_logo?: boolean;
   shadow_color?: string | null;
@@ -333,12 +345,29 @@ function buildTeamBrandFormData(payload: AdminSzfbTeamBrandPayload) {
 
   formData.append("club_slug", payload.club_slug);
 
-  if (payload.display_name !== undefined) {
-    formData.append("display_name", payload.display_name);
+  if (payload.competition !== undefined) {
+    formData.append("competition", String(payload.competition));
   }
 
-  if (payload.match_key !== undefined) {
-    formData.append("match_key", payload.match_key);
+  if (payload.team_name !== undefined) {
+    formData.append("team_name", payload.team_name);
+  }
+
+  if (
+    payload.szfb_competitor_id !== undefined &&
+    payload.szfb_competitor_id !== null
+  ) {
+    formData.append(
+      "szfb_competitor_id",
+      String(payload.szfb_competitor_id)
+    );
+  }
+
+  if (payload.branding_source !== undefined) {
+    formData.append(
+      "branding_source",
+      payload.branding_source === null ? "" : String(payload.branding_source)
+    );
   }
 
   if (payload.logo) {

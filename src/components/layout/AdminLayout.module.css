@@ -58,6 +58,9 @@
   width: 54px;
   height: 54px;
   flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
 }
 
 .brandMark img {
