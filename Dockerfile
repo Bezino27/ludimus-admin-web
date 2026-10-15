@@ -2,8 +2,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL=http://127.0.0.1:8000
+ARG VITE_API_BASE_URL=https://atukosice.sk
+ARG VITE_PUBLIC_SITE_URL=https://atukosice.sk
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_PUBLIC_SITE_URL=$VITE_PUBLIC_SITE_URL
 
 COPY package*.json ./
 RUN npm ci

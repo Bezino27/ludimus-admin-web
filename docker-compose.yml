@@ -4,7 +4,8 @@ services:
       context: .
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://atukosice.sk}
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-https://atukosice.sk}
     container_name: ludimus_admin_web
-    restart: always
+    restart: unless-stopped
     ports:
-      - "4173:80"
+      - "127.0.0.1:4173:80"
